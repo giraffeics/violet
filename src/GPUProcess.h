@@ -1,9 +1,9 @@
-#ifndef GPU_FEATURE_SET_H
-#define GPU_FEATURE_SET_H
+#ifndef GPU_PROCESS_H
+#define GPU_PROCESS_H
 
 #include <cstdint>
 
-class GPUFeatureSet
+class GPUProcess
 {
 public:
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count)

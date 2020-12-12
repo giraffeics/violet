@@ -2,10 +2,10 @@
 
 #include <iostream>
 
-GPUEngine::GPUEngine(const std::vector<GPUFeatureSet*>& featureSets, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
+GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
-	auto instanceExtensions = createInstanceExtensionsVector(featureSets);
-	auto deviceExtensions = createDeviceExtensionsVector(featureSets);
+	auto instanceExtensions = createInstanceExtensionsVector(processes);
+	auto deviceExtensions = createDeviceExtensionsVector(processes);
 
 	if(createInstance(instanceExtensions, appName, engineName, appVersion, engineVersion))
 		std::cout << "Instance created successfully!!" << std::endl;
@@ -142,10 +142,10 @@ bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::
 	return (result == VK_SUCCESS);
 }
 
-std::vector<const char*> GPUEngine::createInstanceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets)
+std::vector<const char*> GPUEngine::createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes)
 {
 	std::vector<const char*> extensionsVector;
-	for (auto featureSet : featureSets)
+	for (auto featureSet : processes)
 	{
 		uint32_t numExtensions;
 		const char** extensions = featureSet->getRequiredInstanceExtensions(&numExtensions);
@@ -172,10 +172,10 @@ std::vector<const char*> GPUEngine::createInstanceExtensionsVector(const std::ve
 	return extensionsVector;
 }
 
-std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets)
+std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes)
 {
 	std::vector<const char*> extensionsVector;
-	for (auto featureSet : featureSets)
+	for (auto featureSet : processes)
 	{
 		uint32_t numExtensions;
 		const char** extensions = featureSet->getRequiredDeviceExtensions(&numExtensions);

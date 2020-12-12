@@ -3,9 +3,9 @@
 #include <GLFW/glfw3.h>
 
 #include "GPUEngine.h"
-#include "GPUFeatureSet.h"
+#include "GPUProcess.h"
 
-class FeatureSetGLFW : public GPUFeatureSet
+class ProcessGLFW : public GPUProcess
 {
 public:
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count)
@@ -20,11 +20,11 @@ int main()
 
 	GLFWwindow* window = glfwCreateWindow(640, 480, "Hello, World~!! ^-^", nullptr, nullptr);
 
-	FeatureSetGLFW featureSet;
-	std::vector<GPUFeatureSet*> featureSetVector;
-	featureSetVector.push_back(&featureSet);
+	ProcessGLFW process;
+	std::vector<GPUProcess*> processVector;
+	processVector.push_back(&process);
 
-	GPUEngine engine(featureSetVector, "VKWhatever", "Whatever Engine");
+	GPUEngine engine(processVector, "VKWhatever", "Whatever Engine");
 
 	while (!glfwWindowShouldClose(window))
 	{
