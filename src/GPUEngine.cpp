@@ -49,6 +49,31 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*> extensions)
 		if (!(graphicsQueueFound && transferQueueFound))
 			continue;
 
+		// Enumerate device extensions
+		uint32_t extensionCount = 0;
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+		std::vector<VkExtensionProperties> extensionPropertiesVector(extensionCount);
+		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, extensionPropertiesVector.data());
+
+		// Check for all required extensions
+		std::vector<const char*> extensionCheckVector(extensions);
+		for (size_t i=0; i<extensionCheckVector.size(); i++)
+		{
+			auto requiredName = extensionCheckVector[i];
+
+			for (auto& foundExtension : extensionPropertiesVector)
+				if (strcmp(foundExtension.extensionName, requiredName))
+				{
+					extensionCheckVector.erase(extensionCheckVector.begin() + i);
+					i--;
+					break;
+				}
+		}
+		if (extensionCheckVector.size() > 0)
+			continue;
+
+		// Device meets bare minimum requirements; see if it is more suitable
+		// than best previously selected device
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
