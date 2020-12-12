@@ -6,9 +6,14 @@
 class GPUFeatureSet
 {
 public:
-	virtual const char** getRequiredExtensions(uint32_t* count)
+	virtual const char** getRequiredInstanceExtensions(uint32_t* count)
 	{
-		count = 0;
+		*count = 0;
+		return nullptr;
+	}
+	virtual const char** getRequiredDeviceExtensions(uint32_t* count)
+	{
+		*count = 0;
 		return nullptr;
 	}
 };

@@ -4,20 +4,26 @@
 
 GPUEngine::GPUEngine(const std::vector<GPUFeatureSet*>& featureSets, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
-	auto extensions = createExtensionsVector(featureSets);
+	auto instanceExtensions = createInstanceExtensionsVector(featureSets);
+	auto deviceExtensions = createDeviceExtensionsVector(featureSets);
 
-	if(createInstance(extensions, appName, engineName, appVersion, engineVersion))
+	if(createInstance(instanceExtensions, appName, engineName, appVersion, engineVersion))
 		std::cout << "Instance created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create instance!!" << std::endl;
 
-	if (choosePhysicalDevice(extensions))
+	if (choosePhysicalDevice(deviceExtensions))
 		std::cout << "Physical device selected successfully!!" << std::endl;
 	else
 		std::cout << "Could not find a suitable physical device!!" << std::endl;
+
+	if (createLogicalDevice(deviceExtensions))
+		std::cout << "Locigal device created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create logical device!!" << std::endl;
 }
 
-bool GPUEngine::choosePhysicalDevice(const std::vector<const char*> extensions)
+bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 {
 	// enumerate physical devices
 	uint32_t physicalDeviceCount = 0;
@@ -95,7 +101,24 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*> extensions)
 	return false;
 }
 
-bool GPUEngine::createInstance(const std::vector<const char*> extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
+bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
+{
+	VkDeviceCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.queueCreateInfoCount = 0;
+	createInfo.pQueueCreateInfos = nullptr;
+	createInfo.enabledLayerCount = 0;
+	createInfo.ppEnabledLayerNames = nullptr;
+	fillExtensionsInStruct(createInfo, extensions);
+	createInfo.pEnabledFeatures = nullptr;
+
+	VkResult result = vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicalDevice);
+	return (result == VK_SUCCESS);
+}
+
+bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
 	VkApplicationInfo applicationInfo = {};
 	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -113,20 +136,49 @@ bool GPUEngine::createInstance(const std::vector<const char*> extensions, std::s
 	createInfo.pApplicationInfo = &applicationInfo;
 	createInfo.enabledLayerCount = 0;
 	createInfo.ppEnabledLayerNames = nullptr;
-	createInfo.enabledExtensionCount = extensions.size();
-	createInfo.ppEnabledExtensionNames = extensions.data();
+	fillExtensionsInStruct(createInfo, extensions);
 
 	VkResult result = vkCreateInstance(&createInfo, nullptr, &mInstance);
 	return (result == VK_SUCCESS);
 }
 
-std::vector<const char*> GPUEngine::createExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets)
+std::vector<const char*> GPUEngine::createInstanceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets)
 {
 	std::vector<const char*> extensionsVector;
 	for (auto featureSet : featureSets)
 	{
 		uint32_t numExtensions;
-		const char** extensions = featureSet->getRequiredExtensions(&numExtensions);
+		const char** extensions = featureSet->getRequiredInstanceExtensions(&numExtensions);
+
+		for (uint32_t i = 0; i < numExtensions; i++)
+		{
+			// check if extension is already in the extensions vector
+			bool extensionExists = false;
+			for (auto extension : extensionsVector)
+			{
+				if (strcmp(extension, extensions[i]) == 0)
+				{
+					extensionExists = true;
+					break;
+				}
+			}
+
+			// otherwise, push it back
+			if (!extensionExists)
+				extensionsVector.push_back(extensions[i]);
+		}
+	}
+
+	return extensionsVector;
+}
+
+std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets)
+{
+	std::vector<const char*> extensionsVector;
+	for (auto featureSet : featureSets)
+	{
+		uint32_t numExtensions;
+		const char** extensions = featureSet->getRequiredDeviceExtensions(&numExtensions);
 
 		for (uint32_t i = 0; i < numExtensions; i++)
 		{

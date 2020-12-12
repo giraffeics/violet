@@ -19,9 +19,18 @@ public:
 	VkDevice getDevice() { return mLogicalDevice; }
 
 private:
-	bool createInstance(const std::vector<const char*> extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
-	bool choosePhysicalDevice(const std::vector<const char*> extensions);
-	std::vector<const char*> createExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets);
+	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
+	bool choosePhysicalDevice(const std::vector<const char*>& extensions);
+	bool createLogicalDevice(const std::vector<const char*>& extensions);
+	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets);
+	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUFeatureSet*>& featureSets);
+
+	template<typename T> static inline void fillExtensionsInStruct(T& structure, const std::vector<const char*>& extensions)
+	{
+		uint32_t numExtensions = extensions.size();
+		structure.enabledExtensionCount = numExtensions;
+		structure.ppEnabledExtensionNames = (numExtensions == 0) ? nullptr : extensions.data();
+	}
 
 	VkInstance mInstance = VK_NULL_HANDLE;
 
