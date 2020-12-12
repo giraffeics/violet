@@ -1,7 +1,18 @@
 #include <iostream>
+
 #include <GLFW/glfw3.h>
 
-#include "device.h"
+#include "GPUEngine.h"
+#include "GPUFeatureSet.h"
+
+class FeatureSetGLFW : public GPUFeatureSet
+{
+public:
+	virtual const char** getRequiredExtensions(uint32_t* count)
+	{
+		return glfwGetRequiredInstanceExtensions(count);
+	}
+};
 
 int main()
 {
@@ -9,10 +20,11 @@ int main()
 
 	GLFWwindow* window = glfwCreateWindow(640, 480, "Hello, World~!! ^-^", nullptr, nullptr);
 
-	device d;
-	d.sayHello();
+	FeatureSetGLFW featureSet;
+	std::vector<GPUFeatureSet*> featureSetVector;
+	featureSetVector.push_back(&featureSet);
 
-	glfwShowWindow(window);
+	GPUEngine engine(featureSetVector, "VKWhatever", "Whatever Engine");
 
 	while (!glfwWindowShouldClose(window))
 	{
