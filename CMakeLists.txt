@@ -6,16 +6,12 @@ project("VKWhatever")
 add_subdirectory("src")
 
 # SET UP VULKAN LIBRARY
-add_library(vulkan INTERFACE)
-target_include_directories(vulkan INTERFACE "$ENV{VULKAN_SDK}/Include")
 
-set(VKLIBPATH "$ENV{VULKAN_SDK}/Lib32")
+find_package(Vulkan REQUIRED FATAL_ERROR)
 
-if (${CMAKE_SIZEOF_VOID_P} MATCHES 8)
-	set(VKLIBPATH "$ENV{VULKAN_SDK}/Lib")
-endif()
-
-target_link_libraries(vulkan INTERFACE "${VKLIBPATH}/vulkan-1.lib")
+add_library(vulkan_neat INTERFACE)
+target_link_libraries(vulkan_neat INTERFACE ${Vulkan_LIBRARIES})
+target_include_directories(vulkan_neat INTERFACE ${Vulkan_INCLUDE_DIRS})
 
 # SET UP GLFW LIBRARY
 option(BUILD_SHARED_LIBS ON)
