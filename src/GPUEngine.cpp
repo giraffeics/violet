@@ -1,6 +1,7 @@
 #include "GPUEngine.h"
 
 #include <iostream>
+#include <limits>
 
 GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
@@ -103,6 +104,8 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 
 bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 {
+
+
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pNext = nullptr;
@@ -200,4 +203,50 @@ std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vect
 	}
 
 	return extensionsVector;
+}
+
+/**
+* Attempts to find queue families matching the requirements given in flags.
+* Any families not found will be std::numeric_limits<uint32_t>::max() in returned vector.
+*/
+std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags> flags)
+{
+	constexpr uint32_t INVALID_FAMILY = std::numeric_limits<uint32_t>::max();
+
+	// initialize queueFamilies vector
+	std::vector<uint32_t> queueFamilies(flags.size());
+	for (size_t i = 0; i < queueFamilies.size(); i++)
+		queueFamilies[i] = INVALID_FAMILY;
+
+	// query available queue families
+	uint32_t familyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> propertiesVector;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, propertiesVector.data());
+
+	// find valid families for every set of flags
+	size_t familiesNotFound = flags.size();
+	for (size_t i = 0; i < familyCount; i++)
+	{
+		auto& familyProperties = propertiesVector[i];
+		for (size_t j = 0; j < queueFamilies.size(); i++)
+		{
+			// if requested family j has not been found, see if this family
+			// satisfies its needs
+			if (queueFamilies[j] != INVALID_FAMILY)
+				continue;
+
+			if ((familyProperties.queueFlags & flags[j]) == flags[j])
+			{
+				queueFamilies[j] = i;
+				familiesNotFound--;
+			}
+		}
+
+		// stop looking if all required families have been found
+		if (familiesNotFound == 0)
+			break;
+	}
+
+	return queueFamilies;
 }
