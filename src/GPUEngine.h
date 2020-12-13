@@ -24,7 +24,7 @@ private:
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
-	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags> flags);
+	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
 
 	template<typename T> static inline void fillExtensionsInStruct(T& structure, const std::vector<const char*>& extensions)
 	{
@@ -37,6 +37,8 @@ private:
 
 	VkInstance mInstance = VK_NULL_HANDLE;
 
+	uint32_t mGraphicsQueueFamily = INVALID_QUEUE_FAMILY;
+	VkQueue mGraphicsQueue = VK_NULL_HANDLE;
 	VkDevice mLogicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 };

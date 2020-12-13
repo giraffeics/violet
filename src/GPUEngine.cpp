@@ -104,21 +104,44 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 
 bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 {
+	// first, grab all required queues
+	std::vector<VkQueueFlags> requiredQueues = { VK_QUEUE_GRAPHICS_BIT };
+	auto queues = findDeviceQueueFamilies(mPhysicalDevice, requiredQueues);
+	for (auto queue : queues)
+		if (queue == INVALID_QUEUE_FAMILY)
+			return false;
 
+	mGraphicsQueueFamily = queues[0];
+
+	// TODO: make this more robust
+	// Create a single, graphics queue
+	float queuePriority = 1.0f;
+	VkDeviceQueueCreateInfo queueCreateInfo = {};
+	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfo.pNext = nullptr;
+	queueCreateInfo.pQueuePriorities = &queuePriority;
+	queueCreateInfo.queueCount = 1;
+	queueCreateInfo.queueFamilyIndex = mGraphicsQueueFamily;
 
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
-	createInfo.queueCreateInfoCount = 0;
-	createInfo.pQueueCreateInfos = nullptr;
+	createInfo.queueCreateInfoCount = 1;
+	createInfo.pQueueCreateInfos = &queueCreateInfo;
 	createInfo.enabledLayerCount = 0;
 	createInfo.ppEnabledLayerNames = nullptr;
 	fillExtensionsInStruct(createInfo, extensions);
 	createInfo.pEnabledFeatures = nullptr;
 
 	VkResult result = vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicalDevice);
-	return (result == VK_SUCCESS);
+	if (result != VK_SUCCESS)
+		return false;
+
+	// Now obtain and remember the graphics queue
+	vkGetDeviceQueue(mLogicalDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
+
+	return true;
 }
 
 bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
@@ -207,9 +230,9 @@ std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vect
 
 /**
 * Attempts to find queue families matching the requirements given in flags.
-* Any families not found will be std::numeric_limits<uint32_t>::max() in returned vector.
+* Any families not found will be INVALID_QUEUE_FAMILY in returned vector.
 */
-std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags> flags)
+std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags)
 {
 	// initialize queueFamilies vector
 	std::vector<uint32_t> queueFamilies(flags.size());
@@ -219,7 +242,7 @@ std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device
 	// query available queue families
 	uint32_t familyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
-	std::vector<VkQueueFamilyProperties> propertiesVector;
+	std::vector<VkQueueFamilyProperties> propertiesVector(familyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, propertiesVector.data());
 
 	// find valid families for every set of flags
@@ -227,7 +250,7 @@ std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device
 	for (size_t i = 0; i < familyCount; i++)
 	{
 		auto& familyProperties = propertiesVector[i];
-		for (size_t j = 0; j < queueFamilies.size(); i++)
+		for (size_t j = 0; j < queueFamilies.size(); j++)
 		{
 			// if requested family j has not been found, see if this family
 			// satisfies its needs
