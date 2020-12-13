@@ -22,6 +22,7 @@ private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
 	bool choosePhysicalDevice(const std::vector<const char*>& extensions);
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
+	bool createCommandPools();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -39,6 +40,7 @@ private:
 
 	uint32_t mGraphicsQueueFamily = INVALID_QUEUE_FAMILY;
 	VkQueue mGraphicsQueue = VK_NULL_HANDLE;
+	VkCommandPool mGraphicsCommandPool = VK_NULL_HANDLE;
 	VkDevice mLogicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 };

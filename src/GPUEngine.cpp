@@ -22,6 +22,11 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, std::string appN
 		std::cout << "Locigal device created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create logical device!!" << std::endl;
+
+	if (createCommandPools())
+		std::cout << "Command pools created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create command pools!!" << std::endl;
 }
 
 bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
@@ -142,6 +147,18 @@ bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 	vkGetDeviceQueue(mLogicalDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
 
 	return true;
+}
+
+bool GPUEngine::createCommandPools()
+{
+	VkCommandPoolCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+	createInfo.queueFamilyIndex = mGraphicsQueueFamily;
+
+	VkResult result = vkCreateCommandPool(mLogicalDevice, &createInfo, nullptr, &mGraphicsCommandPool);
+	return (result == VK_SUCCESS);
 }
 
 bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
