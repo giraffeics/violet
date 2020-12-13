@@ -12,7 +12,7 @@
 class GPUEngine
 {
 public:
-	GPUEngine(const std::vector<GPUProcess*>& processes, std::string appName, std::string engineName, uint32_t appVersion = 0, uint32_t engineVersion = 0);
+	GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion = 0, uint32_t engineVersion = 0);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
@@ -26,6 +26,7 @@ private:
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
+	static uint32_t findDevicePresentQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 	template<typename T> static inline void fillExtensionsInStruct(T& structure, const std::vector<const char*>& extensions)
 	{
@@ -43,6 +44,7 @@ private:
 	VkCommandPool mGraphicsCommandPool = VK_NULL_HANDLE;
 	VkDevice mLogicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
+	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
 };
 
 #endif

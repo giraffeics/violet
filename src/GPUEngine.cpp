@@ -3,15 +3,33 @@
 #include <iostream>
 #include <limits>
 
-GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
+GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
-	auto instanceExtensions = createInstanceExtensionsVector(processes);
-	auto deviceExtensions = createDeviceExtensionsVector(processes);
+	// check to see if windowSystem is in processes
+	std::vector<GPUProcess*> lProcesses(processes);
+	bool windowSystemFound = false;
+	for (auto process : lProcesses)
+		if (process == windowSystem)
+		{
+			windowSystemFound = true;
+			break;
+		}
+	if (!windowSystemFound)
+		lProcesses.push_back(windowSystem);
+
+	auto instanceExtensions = createInstanceExtensionsVector(lProcesses);
+	auto deviceExtensions = createDeviceExtensionsVector(lProcesses);
 
 	if(createInstance(instanceExtensions, appName, engineName, appVersion, engineVersion))
 		std::cout << "Instance created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create instance!!" << std::endl;
+
+	mSurface = windowSystem->createSurface(mInstance);
+	if (mSurface != VK_NULL_HANDLE)
+		std::cout << "Surface created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create surface!!" << std::endl;
 
 	if (choosePhysicalDevice(deviceExtensions))
 		std::cout << "Physical device selected successfully!!" << std::endl;
@@ -49,16 +67,20 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyPropertiesVector.data());
 
 		// Check for graphics and transfer queue
-		bool graphicsQueueFound = false;
-		bool transferQueueFound = false;
-		for (auto& queueFamilyProperties : queueFamilyPropertiesVector)
-		{
-			if (queueFamilyProperties.queueFlags | VK_QUEUE_GRAPHICS_BIT)
-				graphicsQueueFound = true;
-			if (queueFamilyProperties.queueFlags | VK_QUEUE_TRANSFER_BIT)
-				transferQueueFound = true;
-		}
-		if (!(graphicsQueueFound && transferQueueFound))
+		std::vector<VkQueueFlags> neededQueueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_TRANSFER_BIT };
+		auto acquiredQueues = findDeviceQueueFamilies(physicalDevice, neededQueueFamilies);
+		bool allFamiliesValid = true;
+		for (auto family : acquiredQueues)
+			if (family == INVALID_QUEUE_FAMILY)
+			{
+				allFamiliesValid = false;
+				break;
+			}
+		if (!allFamiliesValid)
+			continue;
+
+		// Check for present queue
+		if (findDevicePresentQueueFamily(physicalDevice, mSurface) == INVALID_QUEUE_FAMILY)
 			continue;
 
 		// Enumerate device extensions
@@ -287,4 +309,20 @@ std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device
 	}
 
 	return queueFamilies;
+}
+
+uint32_t GPUEngine::findDevicePresentQueueFamily(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+	uint32_t familyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(device, &familyCount, nullptr);
+
+	for (size_t i = 0; i < familyCount; i++)
+	{
+		VkBool32 supportsPresent;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &supportsPresent);
+		if (supportsPresent)
+			return i;
+	}
+
+	return INVALID_QUEUE_FAMILY;
 }

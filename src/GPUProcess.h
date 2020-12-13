@@ -36,4 +36,10 @@ protected:
 	};
 };
 
+class GPUWindowSystem : public GPUProcess
+{
+public:
+	virtual VkSurfaceKHR createSurface(VkInstance instance) = 0;
+};
+
 #endif
