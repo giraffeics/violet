@@ -211,12 +211,10 @@ std::vector<const char*> GPUEngine::createDeviceExtensionsVector(const std::vect
 */
 std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags> flags)
 {
-	constexpr uint32_t INVALID_FAMILY = std::numeric_limits<uint32_t>::max();
-
 	// initialize queueFamilies vector
 	std::vector<uint32_t> queueFamilies(flags.size());
 	for (size_t i = 0; i < queueFamilies.size(); i++)
-		queueFamilies[i] = INVALID_FAMILY;
+		queueFamilies[i] = INVALID_QUEUE_FAMILY;
 
 	// query available queue families
 	uint32_t familyCount = 0;
@@ -233,7 +231,7 @@ std::vector<uint32_t> GPUEngine::findDeviceQueueFamilies(VkPhysicalDevice device
 		{
 			// if requested family j has not been found, see if this family
 			// satisfies its needs
-			if (queueFamilies[j] != INVALID_FAMILY)
+			if (queueFamilies[j] != INVALID_QUEUE_FAMILY)
 				continue;
 
 			if ((familyProperties.queueFlags & flags[j]) == flags[j])

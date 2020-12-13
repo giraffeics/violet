@@ -33,6 +33,8 @@ private:
 		structure.ppEnabledExtensionNames = (numExtensions == 0) ? nullptr : extensions.data();
 	}
 
+	static constexpr uint32_t INVALID_QUEUE_FAMILY = std::numeric_limits<uint32_t>::max();
+
 	VkInstance mInstance = VK_NULL_HANDLE;
 
 	VkDevice mLogicalDevice = VK_NULL_HANDLE;
