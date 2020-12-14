@@ -3,6 +3,12 @@
 #include <iostream>
 #include <limits>
 
+#ifdef NDEBUG
+	std::vector<const char*> GPUEngine::validationLayers;
+#else
+	std::vector<const char*> GPUEngine::validationLayers = { "VK_LAYER_KHRONOS_validation" };
+#endif
+
 GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
 	// check to see if windowSystem is in processes
@@ -414,12 +420,14 @@ bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 
 	queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	queueCreateInfos[0].pNext = nullptr;
+	queueCreateInfos[0].flags = 0;
 	queueCreateInfos[0].pQueuePriorities = &queuePriority;
 	queueCreateInfos[0].queueCount = 1;
 	queueCreateInfos[0].queueFamilyIndex = mGraphicsQueueFamily;
 
 	queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	queueCreateInfos[1].pNext = nullptr;
+	queueCreateInfos[1].flags = 0;
 	queueCreateInfos[1].pQueuePriorities = &queuePriority;
 	queueCreateInfos[1].queueCount = 1;
 	queueCreateInfos[1].queueFamilyIndex = mPresentQueueFamily;
@@ -488,7 +496,7 @@ bool GPUEngine::createSwapchain()
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
-	createInfo.preTransform = VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR;
+	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
 	createInfo.clipped = VK_TRUE;
@@ -514,8 +522,8 @@ bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
 	createInfo.pApplicationInfo = &applicationInfo;
-	createInfo.enabledLayerCount = 0;
-	createInfo.ppEnabledLayerNames = nullptr;
+	createInfo.enabledLayerCount = validationLayers.size();
+	createInfo.ppEnabledLayerNames = validationLayers.data();
 	fillExtensionsInStruct(createInfo, extensions);
 
 	VkResult result = vkCreateInstance(&createInfo, nullptr, &mInstance);

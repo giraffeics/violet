@@ -58,6 +58,8 @@ private:
 
 	static constexpr uint32_t INVALID_QUEUE_FAMILY = std::numeric_limits<uint32_t>::max();
 
+	static std::vector<const char*> validationLayers;
+
 	VkInstance mInstance = VK_NULL_HANDLE;
 
 	uint32_t mGraphicsQueueFamily = INVALID_QUEUE_FAMILY;
