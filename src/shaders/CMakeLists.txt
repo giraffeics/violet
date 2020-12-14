@@ -26,21 +26,3 @@ foreach(INFILE ${shaderfiles})
 		SOURCES ${INFILE})
 	add_dependencies(vkw_shaders ${OUTFILE})
 endforeach()
-
-# compile shaders
-#foreach(SHADER ${shaderfiles})
-#	#string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}" OUTFILE ${SHADER})
-#	set(INFILE "${CMAKE_CURRENT_SOURCE_DIR}/${SHADER}")
-#	set(OUTFILE "${CMAKE_CURRENT_BINARY_DIR}/${SHADER}")
-#	string(REPLACE ".frag" "_frag.spv" OUTFILE ${OUTFILE})
-#	string(REPLACE ".vert" "_vert.spv" OUTFILE ${OUTFILE})
-#	string(REPLACE ".comp" "_comp.spv" OUTFILE ${OUTFILE})
-#	string(REPLACE ".geom" "_geom.spv" OUTFILE ${OUTFILE})
-#	get_filename_component(OUTDIR ${OUTFILE} DIRECTORY)
-#	message("Shader target added: ${OUTFILE}")
-#	add_custom_command( OUTPUT ${OUTFILE}
-#						COMMAND ${GLSLC} ${INFILE} "-o" ${OUTFILE}
-#						VERBATIM
-#						MAIN_DEPENDENCY "${INFILE}") 
-#	add_dependencies(vkw_shaders ${OUTFILE})
-#endforeach()
