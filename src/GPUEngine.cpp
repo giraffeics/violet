@@ -27,8 +27,7 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create instance!!" << std::endl;
 
-	mSurface = windowSystem->createSurface(mInstance);
-	if (mSurface != VK_NULL_HANDLE)
+	if (createSurface())
 		std::cout << "Surface created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create surface!!" << std::endl;
@@ -52,6 +51,235 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 		std::cout << "Swapchain created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create swapchain!!" << std::endl;
+
+	if (createRenderPass())
+		std::cout << "Render pass created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create render pass!!" << std::endl;
+
+	createFrames();
+}
+
+bool GPUEngine::createSurface()
+{
+	mSurface = mWindowSystem->createSurface(mInstance);
+	if (mSurface == VK_NULL_HANDLE)
+		return false;
+
+	mSurfaceExtent = mWindowSystem->getSurfaceExtent();
+	return true;
+}
+
+bool GPUEngine::createRenderPass()
+{
+	// create render pass
+	VkRenderPass renderPass;
+
+	VkAttachmentDescription attachmentDescription = {};
+	attachmentDescription.flags = 0;
+	attachmentDescription.format = mSurfaceFormat.format;
+	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentReference colorAttachmentReference = {};
+	colorAttachmentReference.attachment = 0;
+	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpassDescription = {};
+	subpassDescription.flags = 0;
+	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDescription.colorAttachmentCount = 1;
+	subpassDescription.pColorAttachments = &colorAttachmentReference;
+
+	VkRenderPassCreateInfo renderPassCreateInfo = {};
+	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassCreateInfo.pNext = nullptr;
+	renderPassCreateInfo.attachmentCount = 1;
+	renderPassCreateInfo.pAttachments = &attachmentDescription;
+	renderPassCreateInfo.subpassCount = 1;
+	renderPassCreateInfo.pSubpasses = &subpassDescription;
+	renderPassCreateInfo.dependencyCount = 0;
+	renderPassCreateInfo.pDependencies = nullptr;
+
+	if (vkCreateRenderPass(mLogicalDevice, &renderPassCreateInfo, nullptr, &mRenderPass) == VK_SUCCESS)
+		return true;
+
+	return false;
+}
+
+bool GPUEngine::createFrames()
+{
+	// query for swapchain images
+	uint32_t numSwapchainImages;
+	vkGetSwapchainImagesKHR(mLogicalDevice, mSwapchain, &numSwapchainImages, nullptr);
+	std::vector<VkImage> imagesVector(numSwapchainImages);
+	vkGetSwapchainImagesKHR(mLogicalDevice, mSwapchain, &numSwapchainImages, imagesVector.data());
+
+	// create frames
+	for (uint32_t i = 0; i < numSwapchainImages; i++)
+	{
+		// create image view
+		auto image = imagesVector[i];
+		VkImageView imageView;
+
+		VkImageViewCreateInfo imageViewCreateInfo = {};
+		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		imageViewCreateInfo.pNext = nullptr;
+		imageViewCreateInfo.flags = 0;
+		imageViewCreateInfo.image = image;
+		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = mSurfaceFormat.format;
+		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+		imageViewCreateInfo.subresourceRange.levelCount = 1;
+		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewCreateInfo.subresourceRange.layerCount = 1;
+
+		vkCreateImageView(mLogicalDevice, &imageViewCreateInfo, nullptr, &imageView);
+
+		// create framebuffer
+		VkFramebuffer framebuffer;
+
+		VkFramebufferCreateInfo framebufferCreateInfo = {};
+		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferCreateInfo.pNext = nullptr;
+		framebufferCreateInfo.flags = 0;
+		framebufferCreateInfo.renderPass = mRenderPass;
+		framebufferCreateInfo.attachmentCount = 1;
+		framebufferCreateInfo.pAttachments = &imageView;
+		framebufferCreateInfo.width = mSurfaceExtent.width;
+		framebufferCreateInfo.height = mSurfaceExtent.height;
+		framebufferCreateInfo.layers = 1;
+
+		vkCreateFramebuffer(mLogicalDevice, &framebufferCreateInfo, nullptr, &framebuffer);
+
+		// create fence
+		VkFence fence;
+
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.pNext = nullptr;
+		fenceCreateInfo.flags = 0;
+
+		vkCreateFence(mLogicalDevice, &fenceCreateInfo, nullptr, &fence);
+
+		// add frame
+		mFrames.push_back({ fence, imageView, image, framebuffer });
+	}
+
+	return true;
+}
+
+// TODO: make this more versatile and/or move this functionality
+VkCommandBuffer GPUEngine::allocateCommandBuffer()
+{
+	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+
+	VkCommandBufferAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocateInfo.pNext = nullptr;
+	allocateInfo.commandBufferCount = 1;
+	allocateInfo.commandPool = mGraphicsCommandPool;
+	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+
+	vkAllocateCommandBuffers(mLogicalDevice, &allocateInfo, &commandBuffer);
+	return commandBuffer;
+}
+
+void GPUEngine::renderFrame()
+{
+	// Create fence if it does not exist
+	// TODO: create sync objects elsewhere
+	if (mFence == VK_NULL_HANDLE)
+	{
+		VkFenceCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+
+		vkCreateFence(mLogicalDevice, &createInfo, nullptr, &mFence);
+	}
+
+	// Acquire image
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(mLogicalDevice, mSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, mFence, &imageIndex);
+	
+	// Record command buffer
+	VkCommandBuffer commandBuffer = allocateCommandBuffer();
+
+	// begin recording
+	{
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.pNext = nullptr;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		beginInfo.pInheritanceInfo = nullptr;
+		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	}
+
+	// begin and end render pass
+	{
+		VkClearValue colorClearValue = { 0.8f, 0.1f, 0.3f, 1.0f };
+
+		VkRenderPassBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		beginInfo.pNext = nullptr;
+		beginInfo.renderPass = mRenderPass;
+		beginInfo.framebuffer = mFrames[imageIndex].mFramebuffer;
+		beginInfo.renderArea.offset = { 0, 0 };
+		beginInfo.renderArea.extent = mSurfaceExtent;
+		beginInfo.clearValueCount = 1;
+		beginInfo.pClearValues = &colorClearValue;
+		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdEndRenderPass(commandBuffer);
+	}
+
+	vkEndCommandBuffer(commandBuffer);
+
+	// wait for image availability
+	vkWaitForFences(mLogicalDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(mLogicalDevice, 1, &mFence);
+
+	// submit command buffer
+	{
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pNext = nullptr;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+		vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mFence);
+	}
+
+	// wait for command buffer completion
+	vkWaitForFences(mLogicalDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(mLogicalDevice, 1, &mFence);
+
+	// present image
+	{
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.pNext = nullptr;
+		presentInfo.waitSemaphoreCount = 0;
+		presentInfo.pWaitSemaphores = nullptr;
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = &mSwapchain;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr;
+		vkQueuePresentKHR(mPresentQueue, &presentInfo);
+	}
+
+	// free command buffer and reset pool
+	vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer);
+	vkResetCommandPool(mLogicalDevice, mGraphicsCommandPool, 0);
 }
 
 bool GPUEngine::chooseSurfaceFormat()
@@ -243,7 +471,7 @@ bool GPUEngine::createSwapchain()
 	createInfo.minImageCount = 2;
 	createInfo.imageFormat = mSurfaceFormat.format;
 	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
-	createInfo.imageExtent = mWindowSystem->getSurfaceExtent();
+	createInfo.imageExtent = mSurfaceExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 

@@ -18,6 +18,7 @@ int main()
 	while (!windowSystem.shouldClose())
 	{
 		windowSystem.pollEvents();
+		engine.renderFrame();
 	}
 
 	return 0;
