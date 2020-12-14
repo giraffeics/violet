@@ -42,6 +42,13 @@ public:
 		return surface;
 	}
 
+	virtual VkExtent2D getSurfaceExtent()
+	{
+		int width, height;
+		glfwGetWindowSize(mWindow, &width, &height);
+		return VkExtent2D{ (uint32_t)width, (uint32_t)height };
+	}
+
 	void pollEvents()
 	{
 		glfwPollEvents();

@@ -40,6 +40,7 @@ class GPUWindowSystem : public GPUProcess
 {
 public:
 	virtual VkSurfaceKHR createSurface(VkInstance instance) = 0;
+	virtual VkExtent2D getSurfaceExtent() = 0;
 };
 
 #endif

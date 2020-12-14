@@ -22,7 +22,9 @@ private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
 	bool choosePhysicalDevice(const std::vector<const char*>& extensions);
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
+	bool chooseSurfaceFormat();
 	bool createCommandPools();
+	bool createSwapchain();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -35,16 +37,22 @@ private:
 		structure.ppEnabledExtensionNames = (numExtensions == 0) ? nullptr : extensions.data();
 	}
 
+	GPUWindowSystem* mWindowSystem;
+
 	static constexpr uint32_t INVALID_QUEUE_FAMILY = std::numeric_limits<uint32_t>::max();
 
 	VkInstance mInstance = VK_NULL_HANDLE;
 
 	uint32_t mGraphicsQueueFamily = INVALID_QUEUE_FAMILY;
+	uint32_t mPresentQueueFamily = INVALID_QUEUE_FAMILY;
 	VkQueue mGraphicsQueue = VK_NULL_HANDLE;
+	VkQueue mPresentQueue = VK_NULL_HANDLE;
 	VkCommandPool mGraphicsCommandPool = VK_NULL_HANDLE;
 	VkDevice mLogicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
+	VkSurfaceFormatKHR mSurfaceFormat;
+	VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
 };
 
 #endif

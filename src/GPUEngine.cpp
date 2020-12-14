@@ -17,6 +17,8 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	if (!windowSystemFound)
 		lProcesses.push_back(windowSystem);
 
+	mWindowSystem = windowSystem;
+
 	auto instanceExtensions = createInstanceExtensionsVector(lProcesses);
 	auto deviceExtensions = createDeviceExtensionsVector(lProcesses);
 
@@ -45,6 +47,42 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 		std::cout << "Command pools created successfully!!" << std::endl;
 	else
 		std::cout << "Could not create command pools!!" << std::endl;
+
+	if (createSwapchain())
+		std::cout << "Swapchain created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create swapchain!!" << std::endl;
+}
+
+bool GPUEngine::chooseSurfaceFormat()
+{
+	// query available formats
+	uint32_t numFormats;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &numFormats, nullptr);
+	std::vector<VkSurfaceFormatKHR> formats(numFormats);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &numFormats, formats.data());
+
+	if (numFormats == 0)
+		return false;
+
+	int bestRating = -1;
+	VkSurfaceFormatKHR bestFormat;
+	for (auto& format : formats)
+	{
+		int rating = 0;
+
+		if (format.format == VK_FORMAT_B8G8R8A8_SRGB)
+			rating += 2;
+
+		if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			rating += 1;
+
+		if (rating > bestRating)
+			bestFormat = format;
+	}
+
+	mSurfaceFormat = bestFormat;
+	return true;
 }
 
 bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
@@ -139,23 +177,31 @@ bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 			return false;
 
 	mGraphicsQueueFamily = queues[0];
+	mPresentQueueFamily = findDevicePresentQueueFamily(mPhysicalDevice, mSurface);
 
 	// TODO: make this more robust
-	// Create a single, graphics queue
+	// Create a graphics queue and, if needed, a present queue
+	VkDeviceQueueCreateInfo queueCreateInfos[2];
 	float queuePriority = 1.0f;
-	VkDeviceQueueCreateInfo queueCreateInfo = {};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.pNext = nullptr;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.queueFamilyIndex = mGraphicsQueueFamily;
+
+	queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfos[0].pNext = nullptr;
+	queueCreateInfos[0].pQueuePriorities = &queuePriority;
+	queueCreateInfos[0].queueCount = 1;
+	queueCreateInfos[0].queueFamilyIndex = mGraphicsQueueFamily;
+
+	queueCreateInfos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueCreateInfos[1].pNext = nullptr;
+	queueCreateInfos[1].pQueuePriorities = &queuePriority;
+	queueCreateInfos[1].queueCount = 1;
+	queueCreateInfos[1].queueFamilyIndex = mPresentQueueFamily;
 
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
-	createInfo.queueCreateInfoCount = 1;
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
+	createInfo.queueCreateInfoCount = (mGraphicsQueueFamily == mPresentQueueFamily) ? 1 : 2;
+	createInfo.pQueueCreateInfos = queueCreateInfos;
 	createInfo.enabledLayerCount = 0;
 	createInfo.ppEnabledLayerNames = nullptr;
 	fillExtensionsInStruct(createInfo, extensions);
@@ -165,8 +211,9 @@ bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 	if (result != VK_SUCCESS)
 		return false;
 
-	// Now obtain and remember the graphics queue
+	// Now obtain and remember the queue(s)
 	vkGetDeviceQueue(mLogicalDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
+	vkGetDeviceQueue(mLogicalDevice, mPresentQueueFamily, 0, &mPresentQueue);
 
 	return true;
 }
@@ -180,6 +227,46 @@ bool GPUEngine::createCommandPools()
 	createInfo.queueFamilyIndex = mGraphicsQueueFamily;
 
 	VkResult result = vkCreateCommandPool(mLogicalDevice, &createInfo, nullptr, &mGraphicsCommandPool);
+	return (result == VK_SUCCESS);
+}
+
+bool GPUEngine::createSwapchain()
+{
+	if (!chooseSurfaceFormat())
+		return false;
+
+	VkSwapchainCreateInfoKHR createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.surface = mSurface;
+	createInfo.minImageCount = 2;
+	createInfo.imageFormat = mSurfaceFormat.format;
+	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
+	createInfo.imageExtent = mWindowSystem->getSurfaceExtent();
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	uint32_t queueFamilyIndices[] = { mGraphicsQueueFamily, mPresentQueueFamily };
+	if (mGraphicsQueueFamily == mPresentQueueFamily)
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = 0;
+		createInfo.pQueueFamilyIndices = nullptr;
+	}
+	else
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	createInfo.preTransform = VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.clipped = VK_TRUE;
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	VkResult result = vkCreateSwapchainKHR(mLogicalDevice, &createInfo, nullptr, &mSwapchain);
 	return (result == VK_SUCCESS);
 }
 
