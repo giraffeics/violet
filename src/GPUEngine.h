@@ -20,7 +20,7 @@ public:
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
-	VkDevice getDevice() { return mLogicalDevice; }
+	VkDevice getDevice() { return mDevice; }
 
 private:
 	struct Frame
@@ -65,7 +65,7 @@ private:
 	VkQueue mGraphicsQueue = VK_NULL_HANDLE;
 	VkQueue mPresentQueue = VK_NULL_HANDLE;
 	VkCommandPool mGraphicsCommandPool = VK_NULL_HANDLE;
-	VkDevice mLogicalDevice = VK_NULL_HANDLE;
+	VkDevice mDevice = VK_NULL_HANDLE;
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
 	VkExtent2D mSurfaceExtent;

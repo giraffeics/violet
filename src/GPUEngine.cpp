@@ -106,7 +106,7 @@ bool GPUEngine::createRenderPass()
 	renderPassCreateInfo.dependencyCount = 0;
 	renderPassCreateInfo.pDependencies = nullptr;
 
-	if (vkCreateRenderPass(mLogicalDevice, &renderPassCreateInfo, nullptr, &mRenderPass) == VK_SUCCESS)
+	if (vkCreateRenderPass(mDevice, &renderPassCreateInfo, nullptr, &mRenderPass) == VK_SUCCESS)
 		return true;
 
 	return false;
@@ -116,9 +116,9 @@ bool GPUEngine::createFrames()
 {
 	// query for swapchain images
 	uint32_t numSwapchainImages;
-	vkGetSwapchainImagesKHR(mLogicalDevice, mSwapchain, &numSwapchainImages, nullptr);
+	vkGetSwapchainImagesKHR(mDevice, mSwapchain, &numSwapchainImages, nullptr);
 	std::vector<VkImage> imagesVector(numSwapchainImages);
-	vkGetSwapchainImagesKHR(mLogicalDevice, mSwapchain, &numSwapchainImages, imagesVector.data());
+	vkGetSwapchainImagesKHR(mDevice, mSwapchain, &numSwapchainImages, imagesVector.data());
 
 	// create frames
 	for (uint32_t i = 0; i < numSwapchainImages; i++)
@@ -144,7 +144,7 @@ bool GPUEngine::createFrames()
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
-		vkCreateImageView(mLogicalDevice, &imageViewCreateInfo, nullptr, &imageView);
+		vkCreateImageView(mDevice, &imageViewCreateInfo, nullptr, &imageView);
 
 		// create framebuffer
 		VkFramebuffer framebuffer;
@@ -160,7 +160,7 @@ bool GPUEngine::createFrames()
 		framebufferCreateInfo.height = mSurfaceExtent.height;
 		framebufferCreateInfo.layers = 1;
 
-		vkCreateFramebuffer(mLogicalDevice, &framebufferCreateInfo, nullptr, &framebuffer);
+		vkCreateFramebuffer(mDevice, &framebufferCreateInfo, nullptr, &framebuffer);
 
 		// create fence
 		VkFence fence;
@@ -170,7 +170,7 @@ bool GPUEngine::createFrames()
 		fenceCreateInfo.pNext = nullptr;
 		fenceCreateInfo.flags = 0;
 
-		vkCreateFence(mLogicalDevice, &fenceCreateInfo, nullptr, &fence);
+		vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &fence);
 
 		// add frame
 		mFrames.push_back({ fence, imageView, image, framebuffer });
@@ -191,7 +191,7 @@ VkCommandBuffer GPUEngine::allocateCommandBuffer()
 	allocateInfo.commandPool = mGraphicsCommandPool;
 	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-	vkAllocateCommandBuffers(mLogicalDevice, &allocateInfo, &commandBuffer);
+	vkAllocateCommandBuffers(mDevice, &allocateInfo, &commandBuffer);
 	return commandBuffer;
 }
 
@@ -206,12 +206,12 @@ void GPUEngine::renderFrame()
 		createInfo.pNext = nullptr;
 		createInfo.flags = 0;
 
-		vkCreateFence(mLogicalDevice, &createInfo, nullptr, &mFence);
+		vkCreateFence(mDevice, &createInfo, nullptr, &mFence);
 	}
 
 	// Acquire image
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(mLogicalDevice, mSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, mFence, &imageIndex);
+	vkAcquireNextImageKHR(mDevice, mSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, mFence, &imageIndex);
 	
 	// Record command buffer
 	VkCommandBuffer commandBuffer = allocateCommandBuffer();
@@ -246,8 +246,8 @@ void GPUEngine::renderFrame()
 	vkEndCommandBuffer(commandBuffer);
 
 	// wait for image availability
-	vkWaitForFences(mLogicalDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(mLogicalDevice, 1, &mFence);
+	vkWaitForFences(mDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(mDevice, 1, &mFence);
 
 	// submit command buffer
 	{
@@ -260,8 +260,8 @@ void GPUEngine::renderFrame()
 	}
 
 	// wait for command buffer completion
-	vkWaitForFences(mLogicalDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(mLogicalDevice, 1, &mFence);
+	vkWaitForFences(mDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(mDevice, 1, &mFence);
 
 	// present image
 	{
@@ -278,8 +278,8 @@ void GPUEngine::renderFrame()
 	}
 
 	// free command buffer and reset pool
-	vkFreeCommandBuffers(mLogicalDevice, mGraphicsCommandPool, 1, &commandBuffer);
-	vkResetCommandPool(mLogicalDevice, mGraphicsCommandPool, 0);
+	vkFreeCommandBuffers(mDevice, mGraphicsCommandPool, 1, &commandBuffer);
+	vkResetCommandPool(mDevice, mGraphicsCommandPool, 0);
 }
 
 bool GPUEngine::chooseSurfaceFormat()
@@ -435,13 +435,13 @@ bool GPUEngine::createLogicalDevice(const std::vector<const char*>& extensions)
 	fillExtensionsInStruct(createInfo, extensions);
 	createInfo.pEnabledFeatures = nullptr;
 
-	VkResult result = vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicalDevice);
+	VkResult result = vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mDevice);
 	if (result != VK_SUCCESS)
 		return false;
 
 	// Now obtain and remember the queue(s)
-	vkGetDeviceQueue(mLogicalDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
-	vkGetDeviceQueue(mLogicalDevice, mPresentQueueFamily, 0, &mPresentQueue);
+	vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
+	vkGetDeviceQueue(mDevice, mPresentQueueFamily, 0, &mPresentQueue);
 
 	return true;
 }
@@ -454,7 +454,7 @@ bool GPUEngine::createCommandPools()
 	createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 	createInfo.queueFamilyIndex = mGraphicsQueueFamily;
 
-	VkResult result = vkCreateCommandPool(mLogicalDevice, &createInfo, nullptr, &mGraphicsCommandPool);
+	VkResult result = vkCreateCommandPool(mDevice, &createInfo, nullptr, &mGraphicsCommandPool);
 	return (result == VK_SUCCESS);
 }
 
@@ -494,7 +494,7 @@ bool GPUEngine::createSwapchain()
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	VkResult result = vkCreateSwapchainKHR(mLogicalDevice, &createInfo, nullptr, &mSwapchain);
+	VkResult result = vkCreateSwapchainKHR(mDevice, &createInfo, nullptr, &mSwapchain);
 	return (result == VK_SUCCESS);
 }
 
