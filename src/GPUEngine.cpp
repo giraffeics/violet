@@ -64,6 +64,7 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 		std::cout << "Could not create render pass!!" << std::endl;
 
 	createFrames();
+	mPipeline = new GPUPipeline(this, { "passthrough_vert", "passthrough_frag" }, { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT });
 }
 
 bool GPUEngine::createSurface()
@@ -246,6 +247,8 @@ void GPUEngine::renderFrame()
 		beginInfo.clearValueCount = 1;
 		beginInfo.pClearValues = &colorClearValue;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		mPipeline->bind(commandBuffer);
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 		vkCmdEndRenderPass(commandBuffer);
 	}
 

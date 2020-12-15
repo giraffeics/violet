@@ -9,6 +9,8 @@
 
 #include "GPUProcess.h"
 
+class GPUPipeline;
+
 class GPUEngine
 {
 public:
@@ -21,6 +23,8 @@ public:
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
 	VkDevice getDevice() { return mDevice; }
+	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
+	VkRenderPass getRenderPass() { return mRenderPass; }
 
 private:
 	struct Frame
@@ -75,6 +79,20 @@ private:
 	VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
 	VkRenderPass mRenderPass = VK_NULL_HANDLE;
 	VkFence mFence = VK_NULL_HANDLE;
+	GPUPipeline* mPipeline = nullptr;
+};
+
+class GPUPipeline
+{
+public:
+	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages);
+	bool valid();
+	void bind(VkCommandBuffer commandBuffer);
+private:
+	GPUEngine* mEngine;
+	std::vector<VkShaderModule> mShaderModules;
+	VkPipelineLayout mPipelineLayout;
+	VkPipeline mPipeline;
 };
 
 #endif
