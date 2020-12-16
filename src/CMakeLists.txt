@@ -1,7 +1,7 @@
 project(vkw_src)
 
 # Main program
-add_executable(VKWhatever "main.cpp" "GPUEngine.cpp" "GPUWindowSystemGLFW.cpp" "GPUEngine.h"  "GPUProcess.h" "GPUWindowSystemGLFW.h"  "GPUPipeline.cpp")
+add_executable(VKWhatever "main.cpp" "GPUEngine.cpp" "GPUWindowSystemGLFW.cpp" "GPUEngine.h"  "GPUProcess.h" "GPUWindowSystemGLFW.h"  "GPUPipeline.cpp" "GPUProcess.cpp")
 target_link_libraries(VKWhatever glfw vulkan_neat)
 
 #Shaders
