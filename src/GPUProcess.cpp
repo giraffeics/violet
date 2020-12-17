@@ -27,9 +27,19 @@ VkQueueFlags GPUProcess::getNeededQueueType()
 	return 0;
 }
 
+bool GPUProcess::isOperationCommand()
+{
+	return true;
+}
+
 VkCommandBuffer GPUProcess::performOperation(VkCommandPool commandPool)
 {
 	return VK_NULL_HANDLE;
+}
+
+void GPUProcess::performOperation(VkFence fence, VkSemaphore semaphore)
+{
+	// do nothing in default implementation
 }
 
 std::vector<GPUProcess::PRDependency> GPUProcess::getPRDependencies()

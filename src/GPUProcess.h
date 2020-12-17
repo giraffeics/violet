@@ -39,7 +39,9 @@ public:
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count);
 	virtual const char** getRequiredDeviceExtensions(uint32_t* count);
 	virtual VkQueueFlags getNeededQueueType();
+	virtual bool isOperationCommand();
 	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
+	virtual void performOperation(VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 	virtual void acquireLongtermResources();
 
