@@ -3,6 +3,8 @@
 #include <iostream>
 #include <limits>
 
+#include "GPUProcessRenderPass.h"
+
 #ifdef NDEBUG
 	std::vector<const char*> GPUEngine::validationLayers;
 #else
@@ -58,13 +60,19 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create swapchain!!" << std::endl;
 
-	if (createRenderPass())
-		std::cout << "Render pass created successfully!!" << std::endl;
-	else
-		std::cout << "Could not create render pass!!" << std::endl;
-
 	createFrames();
-	mPipeline = new GPUPipeline(this, { "passthrough_vert", "passthrough_frag" }, { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT });
+
+	// temporary test code for PassableResource for imageviews
+	mPRImageView = new GPUProcess::PassableResource(nullptr, (uintptr_t*)&currentImageView);
+	std::vector<uintptr_t> imageViewsVector;
+	for (auto& frame : mFrames)
+		imageViewsVector.push_back((uintptr_t) frame.mImageView);
+	mPRImageView->setPossibleValues(imageViewsVector);
+
+	mRenderPassProcess = new GPUProcessRenderPass;
+	mRenderPassProcess->setEngine(this);
+	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(mPRImageView);
+	mRenderPassProcess->acquireLongtermResources();
 }
 
 bool GPUEngine::createSurface()
@@ -75,48 +83,6 @@ bool GPUEngine::createSurface()
 
 	mSurfaceExtent = mWindowSystem->getSurfaceExtent();
 	return true;
-}
-
-bool GPUEngine::createRenderPass()
-{
-	// create render pass
-	VkRenderPass renderPass;
-
-	VkAttachmentDescription attachmentDescription = {};
-	attachmentDescription.flags = 0;
-	attachmentDescription.format = mSurfaceFormat.format;
-	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference colorAttachmentReference = {};
-	colorAttachmentReference.attachment = 0;
-	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpassDescription = {};
-	subpassDescription.flags = 0;
-	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpassDescription.colorAttachmentCount = 1;
-	subpassDescription.pColorAttachments = &colorAttachmentReference;
-
-	VkRenderPassCreateInfo renderPassCreateInfo = {};
-	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassCreateInfo.pNext = nullptr;
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments = &attachmentDescription;
-	renderPassCreateInfo.subpassCount = 1;
-	renderPassCreateInfo.pSubpasses = &subpassDescription;
-	renderPassCreateInfo.dependencyCount = 0;
-	renderPassCreateInfo.pDependencies = nullptr;
-
-	if (vkCreateRenderPass(mDevice, &renderPassCreateInfo, nullptr, &mRenderPass) == VK_SUCCESS)
-		return true;
-
-	return false;
 }
 
 bool GPUEngine::createFrames()
@@ -153,41 +119,15 @@ bool GPUEngine::createFrames()
 
 		vkCreateImageView(mDevice, &imageViewCreateInfo, nullptr, &imageView);
 
-		// create framebuffer
-		VkFramebuffer framebuffer;
-
-		VkFramebufferCreateInfo framebufferCreateInfo = {};
-		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferCreateInfo.pNext = nullptr;
-		framebufferCreateInfo.flags = 0;
-		framebufferCreateInfo.renderPass = mRenderPass;
-		framebufferCreateInfo.attachmentCount = 1;
-		framebufferCreateInfo.pAttachments = &imageView;
-		framebufferCreateInfo.width = mSurfaceExtent.width;
-		framebufferCreateInfo.height = mSurfaceExtent.height;
-		framebufferCreateInfo.layers = 1;
-
-		vkCreateFramebuffer(mDevice, &framebufferCreateInfo, nullptr, &framebuffer);
-
-		// create fence
-		VkFence fence;
-
-		VkFenceCreateInfo fenceCreateInfo = {};
-		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceCreateInfo.pNext = nullptr;
-		fenceCreateInfo.flags = 0;
-
-		vkCreateFence(mDevice, &fenceCreateInfo, nullptr, &fence);
-
 		// add frame
-		mFrames.push_back({ fence, imageView, image, framebuffer });
+		mFrames.push_back({ imageView, image });
 	}
 
 	return true;
 }
 
 // TODO: make this more versatile and/or move this functionality
-VkCommandBuffer GPUEngine::allocateCommandBuffer()
+VkCommandBuffer GPUEngine::allocateCommandBuffer(VkCommandPool commandPool)
 {
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
@@ -195,7 +135,7 @@ VkCommandBuffer GPUEngine::allocateCommandBuffer()
 	allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocateInfo.pNext = nullptr;
 	allocateInfo.commandBufferCount = 1;
-	allocateInfo.commandPool = mGraphicsCommandPool;
+	allocateInfo.commandPool = commandPool;
 	allocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
 	vkAllocateCommandBuffers(mDevice, &allocateInfo, &commandBuffer);
@@ -220,39 +160,8 @@ void GPUEngine::renderFrame()
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(mDevice, mSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, mFence, &imageIndex);
 	
-	// Record command buffer
-	VkCommandBuffer commandBuffer = allocateCommandBuffer();
-
-	// begin recording
-	{
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.pNext = nullptr;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		beginInfo.pInheritanceInfo = nullptr;
-		vkBeginCommandBuffer(commandBuffer, &beginInfo);
-	}
-
-	// begin and end render pass
-	{
-		VkClearValue colorClearValue = { 0.8f, 0.1f, 0.3f, 1.0f };
-
-		VkRenderPassBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		beginInfo.pNext = nullptr;
-		beginInfo.renderPass = mRenderPass;
-		beginInfo.framebuffer = mFrames[imageIndex].mFramebuffer;
-		beginInfo.renderArea.offset = { 0, 0 };
-		beginInfo.renderArea.extent = mSurfaceExtent;
-		beginInfo.clearValueCount = 1;
-		beginInfo.pClearValues = &colorClearValue;
-		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
-		mPipeline->bind(commandBuffer);
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-		vkCmdEndRenderPass(commandBuffer);
-	}
-
-	vkEndCommandBuffer(commandBuffer);
+	currentImageView = mFrames[imageIndex].mImageView;
+	VkCommandBuffer commandBuffer = mRenderPassProcess->performOperation(mGraphicsCommandPool);
 
 	// wait for image availability
 	vkWaitForFences(mDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());

@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages)
+GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass)
 {
 	mEngine = engine;
 
@@ -155,7 +155,7 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 	createInfo.pColorBlendState = &colorBlendInfo;
 	createInfo.pDynamicState = nullptr;
 	createInfo.layout = mPipelineLayout;
-	createInfo.renderPass = mEngine->getRenderPass();
+	createInfo.renderPass = renderPass;
 	createInfo.subpass = 0;
 	createInfo.basePipelineHandle = VK_NULL_HANDLE;
 	createInfo.basePipelineIndex = 0;

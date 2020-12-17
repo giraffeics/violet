@@ -19,20 +19,20 @@ public:
 
 	// Public functionality
 	void renderFrame();
+	VkCommandBuffer allocateCommandBuffer(VkCommandPool commandPool);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
 	VkDevice getDevice() { return mDevice; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkRenderPass getRenderPass() { return mRenderPass; }
+	VkFormat getSurfaceFormat() { return mSurfaceFormat.format; }
 
 private:
 	struct Frame
 	{
-		VkFence mFence;
 		VkImageView mImageView;
 		VkImage mImage;
-		VkFramebuffer mFramebuffer;
 	};
 	std::vector<Frame> mFrames;
 
@@ -41,11 +41,9 @@ private:
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
 	bool createSurface();
 	bool createFrames();
-	bool createRenderPass();
 	bool chooseSurfaceFormat();
 	bool createCommandPools();
 	bool createSwapchain();
-	VkCommandBuffer allocateCommandBuffer();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -64,8 +62,13 @@ private:
 
 	static std::vector<const char*> validationLayers;
 
-	VkInstance mInstance = VK_NULL_HANDLE;
+	// Temporary objects for testing GPUProcess system
+	GPUProcess::PassableResource* mPRImageView;
+	GPUProcess* mRenderPassProcess;
+	VkImageView currentImageView;
 
+	// Vulkan objects owned by GPUEngine
+	VkInstance mInstance = VK_NULL_HANDLE;
 	uint32_t mGraphicsQueueFamily = INVALID_QUEUE_FAMILY;
 	uint32_t mPresentQueueFamily = INVALID_QUEUE_FAMILY;
 	VkQueue mGraphicsQueue = VK_NULL_HANDLE;
@@ -85,7 +88,7 @@ private:
 class GPUPipeline
 {
 public:
-	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages);
+	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass);
 	bool valid();
 	void bind(VkCommandBuffer commandBuffer);
 private:
