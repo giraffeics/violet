@@ -41,7 +41,7 @@ public:
 	virtual VkQueueFlags getNeededQueueType();
 	virtual bool isOperationCommand();
 	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
-	virtual void performOperation(VkFence fence, VkSemaphore semaphore);
+	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 	virtual void acquireLongtermResources();
 
