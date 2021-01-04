@@ -12,9 +12,9 @@ class GPUProcessRenderPass : public GPUProcess
 {
 public:
 	// functions for setting up passable resource relationships
-	void setImageViewPR(const PassableResource* prImageView);
+	void setImageViewPR(const PassableResource<VkImageView>* prImageView);
 	void setImageFormat(VkFormat format);
-	const PassableResource* getImageViewOutPR();
+	const PassableResource<VkImageView>* getImageViewOutPR();
 
 	// virtual functions inherited from GPUProcess
 	virtual std::vector<PRDependency> getPRDependencies();
@@ -25,8 +25,8 @@ public:
 private:
 	bool createRenderPass();
 
-	const PassableResource* mPRImageView = nullptr;
-	std::unique_ptr<PassableResource> mPRImageViewOut;
+	const PassableResource<VkImageView>* mPRImageView = nullptr;
+	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
 	VkFormat mImageFormat;
 	VkRenderPass mRenderPass;

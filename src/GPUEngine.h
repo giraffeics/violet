@@ -57,7 +57,6 @@ private:
 	static std::vector<const char*> validationLayers;
 
 	// Temporary objects for testing GPUProcess system
-	GPUProcess::PassableResource* mPRImageView;
 	GPUProcess* mRenderPassProcess;
 	VkImageView currentImageView;
 	GPUProcess* mSwapchainProcess;

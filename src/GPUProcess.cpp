@@ -51,31 +51,3 @@ void GPUProcess::acquireLongtermResources()
 {
 	// do nothing for default implementation
 }
-
-// PassableResource function implementations
-
-GPUProcess::PassableResource::PassableResource(GPUProcess* process, uintptr_t* handle)
-{
-	mProcess = process;
-	mVkHandle = handle;
-}
-
-GPUProcess* GPUProcess::PassableResource::getSourceProcess() const
-{
-	return mProcess;
-}
-
-uintptr_t GPUProcess::PassableResource::getVkHandle() const
-{
-	return *mVkHandle;
-}
-
-const std::vector<uintptr_t> GPUProcess::PassableResource::getPossibleValues() const
-{
-	return mPossibleValues;
-}
-
-void GPUProcess::PassableResource::setPossibleValues(std::vector<uintptr_t> possibleValues)
-{
-	mPossibleValues = possibleValues;
-}

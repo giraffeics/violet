@@ -2,10 +2,10 @@
 
 #include "GPUEngine.h"
 
-void GPUProcessRenderPass::setImageViewPR(const PassableResource* prImageView)
+void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
 {
 	mPRImageView = prImageView;
-	mPRImageViewOut = std::make_unique<PassableResource>(this, (uintptr_t*) &mCurrentImageView);
+	mPRImageViewOut = std::make_unique<PassableResource<VkImageView>>(this, &mCurrentImageView);
 }
 
 void GPUProcessRenderPass::setImageFormat(VkFormat format)
@@ -13,7 +13,7 @@ void GPUProcessRenderPass::setImageFormat(VkFormat format)
 	mImageFormat = format;
 }
 
-const GPUProcess::PassableResource* GPUProcessRenderPass::getImageViewOutPR()
+const GPUProcess::PassableResource<VkImageView>* GPUProcessRenderPass::getImageViewOutPR()
 {
 	return mPRImageViewOut.get();
 }

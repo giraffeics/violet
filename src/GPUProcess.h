@@ -11,26 +11,49 @@ class GPUProcess
 {
 public:
 	// classes & structs scoped to GPUProcess
-	class PassableResource
+	class PassableResourceBase
 	{
 	public:
-		PassableResource(GPUProcess* process, uintptr_t* handle);
+		GPUProcess* getSourceProcess() const {
+			return mProcess;
+		}
 
-		uintptr_t getVkHandle() const;
-		GPUProcess* getSourceProcess() const;
-		const std::vector<uintptr_t> getPossibleValues() const;
-
-		void setPossibleValues(std::vector<uintptr_t> possibleValues);
+	protected:
+		// do not allow instances of base class
+		~PassableResourceBase() {};
 
 	private:
 		GPUProcess* mProcess = nullptr;
-		uintptr_t* mVkHandle = nullptr;
-		std::vector<uintptr_t> mPossibleValues = {};
+	};
+	
+	template<typename T> class PassableResource : public PassableResourceBase
+	{
+	public:
+		PassableResource(GPUProcess* process, T* handle){
+			mProcess = process;
+			mVkHandle = handle;
+		}
+
+		T getVkHandle() const {
+			return *mVkHandle;
+		}
+		const std::vector<T> getPossibleValues() const {
+			return mPossibleValues;
+		}
+
+		void setPossibleValues(std::vector<T> possibleValues) {
+			mPossibleValues = possibleValues;
+		}
+
+	private:
+		GPUProcess* mProcess = nullptr;
+		T* mVkHandle = nullptr;
+		std::vector<T> mPossibleValues = {};
 	};
 
 	typedef struct PRDependency
 	{
-		const PassableResource* resource;
+		const PassableResourceBase* resource;
 		VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 	};
 

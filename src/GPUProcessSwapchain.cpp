@@ -6,7 +6,7 @@
 
 GPUProcessSwapchain::GPUProcessSwapchain()
 {
-	mPRCurrentImageView = std::make_unique<PassableResource>(this, (uintptr_t*) &currentImageView);
+	mPRCurrentImageView = std::make_unique<PassableResource<VkImageView>>(this, &currentImageView);
 	mPresentProcess = std::make_unique<GPUProcessPresent>(this);
 }
 
@@ -15,7 +15,7 @@ GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
 	return mPresentProcess.get();
 }
 
-const GPUProcess::PassableResource* GPUProcessSwapchain::getPRImageView()
+const GPUProcess::PassableResource<VkImageView>* GPUProcessSwapchain::getPRImageView()
 {
 	return mPRCurrentImageView.get();
 }
@@ -98,7 +98,7 @@ bool GPUProcessSwapchain::createFrames()
 
 	// clear vectors
 	mFrames.clear();
-	std::vector<uintptr_t> imageViewPossibleValues;
+	std::vector<VkImageView> imageViewPossibleValues;
 
 	// create frames
 	for (uint32_t i = 0; i < numSwapchainImages; i++)
@@ -128,7 +128,7 @@ bool GPUProcessSwapchain::createFrames()
 
 		// add frame
 		mFrames.push_back({ imageView, image });
-		imageViewPossibleValues.push_back((uintptr_t)imageView);
+		imageViewPossibleValues.push_back(imageView);
 	}
 
 	// store possible values in PassableResource
@@ -198,7 +198,7 @@ GPUProcessPresent::GPUProcessPresent(GPUProcessSwapchain* swapchainProcess)
 	mSwapchainProcess = swapchainProcess;
 }
 
-void GPUProcessPresent::setImageViewInPR(const PassableResource* imageViewInPR)
+void GPUProcessPresent::setImageViewInPR(const PassableResource<VkImageView>* imageViewInPR)
 {
 	mPRImageViewIn = imageViewInPR;
 }

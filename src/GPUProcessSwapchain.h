@@ -13,7 +13,7 @@ public:
 	GPUProcessSwapchain();
 
 	GPUProcessPresent* getPresentProcess();
-	const PassableResource* getPRImageView();
+	const PassableResource<VkImageView>* getPRImageView();
 	VkFormat getImageFormat();
 
 	// virtual functions inherited from GPUProcess
@@ -43,7 +43,7 @@ private:
 
 	// member variables used for dependency passing
 	VkImageView currentImageView;
-	std::unique_ptr<GPUProcess::PassableResource> mPRCurrentImageView;
+	std::unique_ptr<GPUProcess::PassableResource<VkImageView>> mPRCurrentImageView;
 };
 
 class GPUProcessPresent : public GPUProcess
@@ -51,7 +51,7 @@ class GPUProcessPresent : public GPUProcess
 public:
 	GPUProcessPresent(GPUProcessSwapchain* swapchainProcess);
 
-	void setImageViewInPR(const PassableResource* imageViewInPR);
+	void setImageViewInPR(const PassableResource<VkImageView>* imageViewInPR);
 
 	// virtual functions inherited from GPUProcess
 	virtual bool isOperationCommand();
@@ -60,7 +60,7 @@ public:
 
 private:
 	GPUProcessSwapchain* mSwapchainProcess;
-	const PassableResource* mPRImageViewIn;
+	const PassableResource<VkImageView>* mPRImageViewIn;
 };
 
 #endif
