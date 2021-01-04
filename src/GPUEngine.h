@@ -24,26 +24,20 @@ public:
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
 	VkDevice getDevice() { return mDevice; }
+	VkPhysicalDevice getPhysicalDevice() { return mPhysicalDevice; }
+	uint32_t getGraphicsQueueFamily() { return mGraphicsQueueFamily; }
+	uint32_t getPresentQueueFamily() { return mPresentQueueFamily; }
+	VkQueue getPresentQueue() { return mPresentQueue; }
+	VkSurfaceKHR getSurface() { return mSurface; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkRenderPass getRenderPass() { return mRenderPass; }
-	VkFormat getSurfaceFormat() { return mSurfaceFormat.format; }
 
 private:
-	struct Frame
-	{
-		VkImageView mImageView;
-		VkImage mImage;
-	};
-	std::vector<Frame> mFrames;
-
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
 	bool choosePhysicalDevice(const std::vector<const char*>& extensions);
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
 	bool createSurface();
-	bool createFrames();
-	bool chooseSurfaceFormat();
 	bool createCommandPools();
-	bool createSwapchain();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -66,6 +60,8 @@ private:
 	GPUProcess::PassableResource* mPRImageView;
 	GPUProcess* mRenderPassProcess;
 	VkImageView currentImageView;
+	GPUProcess* mSwapchainProcess;
+	GPUProcess* mPresentProcess;
 
 	// Vulkan objects owned by GPUEngine
 	VkInstance mInstance = VK_NULL_HANDLE;
@@ -78,8 +74,6 @@ private:
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
 	VkExtent2D mSurfaceExtent;
-	VkSurfaceFormatKHR mSurfaceFormat;
-	VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
 	VkRenderPass mRenderPass = VK_NULL_HANDLE;
 	VkFence mFence = VK_NULL_HANDLE;
 	GPUPipeline* mPipeline = nullptr;

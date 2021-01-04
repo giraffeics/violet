@@ -5,6 +5,17 @@
 void GPUProcessRenderPass::setImageViewPR(const PassableResource* prImageView)
 {
 	mPRImageView = prImageView;
+	mPRImageViewOut = std::make_unique<PassableResource>(this, (uintptr_t*) &mCurrentImageView);
+}
+
+void GPUProcessRenderPass::setImageFormat(VkFormat format)
+{
+	mImageFormat = format;
+}
+
+const GPUProcess::PassableResource* GPUProcessRenderPass::getImageViewOutPR()
+{
+	return mPRImageViewOut.get();
 }
 
 std::vector<GPUProcess::PRDependency>  GPUProcessRenderPass::getPRDependencies()
@@ -19,6 +30,9 @@ VkQueueFlags GPUProcessRenderPass::getNeededQueueType()
 
 VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool)
 {
+	// Acquire passed-in resources
+	mCurrentImageView = (VkImageView)mPRImageView->getVkHandle();
+
 	// Record command buffer
 	VkCommandBuffer commandBuffer = mEngine->allocateCommandBuffer(commandPool);
 
@@ -40,7 +54,7 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		beginInfo.pNext = nullptr;
 		beginInfo.renderPass = mRenderPass;
-		beginInfo.framebuffer = mFramebuffers.find((VkImageView) mPRImageView->getVkHandle())->second;
+		beginInfo.framebuffer = mFramebuffers.find(mCurrentImageView)->second;
 		beginInfo.renderArea.offset = { 0, 0 };
 		beginInfo.renderArea.extent = mEngine->getSurfaceExtent();
 		beginInfo.clearValueCount = 1;
@@ -89,6 +103,9 @@ void GPUProcessRenderPass::acquireLongtermResources()
 		{ "passthrough_vert", "passthrough_frag" }, 
 		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
 		mRenderPass);
+
+	// set up resources that are passed out
+	mPRImageViewOut->setPossibleValues(mPRImageView->getPossibleValues());
 }
 
 bool GPUProcessRenderPass::createRenderPass()
@@ -96,7 +113,7 @@ bool GPUProcessRenderPass::createRenderPass()
 	// create render pass
 	VkAttachmentDescription attachmentDescription = {};
 	attachmentDescription.flags = 0;
-	attachmentDescription.format = mEngine->getSurfaceFormat();
+	attachmentDescription.format = mImageFormat;
 	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

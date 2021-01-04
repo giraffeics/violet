@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "GPUProcessRenderPass.h"
+#include "GPUProcessSwapchain.h"
 
 #ifdef NDEBUG
 	std::vector<const char*> GPUEngine::validationLayers;
@@ -55,23 +56,19 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create command pools!!" << std::endl;
 
-	if (createSwapchain())
-		std::cout << "Swapchain created successfully!!" << std::endl;
-	else
-		std::cout << "Could not create swapchain!!" << std::endl;
-
-	createFrames();
-
 	// temporary test code for PassableResource for imageviews
-	mPRImageView = new GPUProcess::PassableResource(nullptr, (uintptr_t*)&currentImageView);
-	std::vector<uintptr_t> imageViewsVector;
-	for (auto& frame : mFrames)
-		imageViewsVector.push_back((uintptr_t) frame.mImageView);
-	mPRImageView->setPossibleValues(imageViewsVector);
+	mSwapchainProcess = new GPUProcessSwapchain;
+	mSwapchainProcess->setEngine(this);
+	mSwapchainProcess->acquireLongtermResources();
+
+	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
+	mPresentProcess->setEngine(this);
+	mPresentProcess->acquireLongtermResources();
 
 	mRenderPassProcess = new GPUProcessRenderPass;
 	mRenderPassProcess->setEngine(this);
-	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(mPRImageView);
+	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormat(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormat());
+	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
 	mRenderPassProcess->acquireLongtermResources();
 }
 
@@ -82,47 +79,6 @@ bool GPUEngine::createSurface()
 		return false;
 
 	mSurfaceExtent = mWindowSystem->getSurfaceExtent();
-	return true;
-}
-
-bool GPUEngine::createFrames()
-{
-	// query for swapchain images
-	uint32_t numSwapchainImages;
-	vkGetSwapchainImagesKHR(mDevice, mSwapchain, &numSwapchainImages, nullptr);
-	std::vector<VkImage> imagesVector(numSwapchainImages);
-	vkGetSwapchainImagesKHR(mDevice, mSwapchain, &numSwapchainImages, imagesVector.data());
-
-	// create frames
-	for (uint32_t i = 0; i < numSwapchainImages; i++)
-	{
-		// create image view
-		auto image = imagesVector[i];
-		VkImageView imageView;
-
-		VkImageViewCreateInfo imageViewCreateInfo = {};
-		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.pNext = nullptr;
-		imageViewCreateInfo.flags = 0;
-		imageViewCreateInfo.image = image;
-		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = mSurfaceFormat.format;
-		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-		imageViewCreateInfo.subresourceRange.levelCount = 1;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-		vkCreateImageView(mDevice, &imageViewCreateInfo, nullptr, &imageView);
-
-		// add frame
-		mFrames.push_back({ imageView, image });
-	}
-
 	return true;
 }
 
@@ -157,10 +113,7 @@ void GPUEngine::renderFrame()
 	}
 
 	// Acquire image
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(mDevice, mSwapchain, std::numeric_limits<uint64_t>::max(), VK_NULL_HANDLE, mFence, &imageIndex);
-	
-	currentImageView = mFrames[imageIndex].mImageView;
+	mSwapchainProcess->performOperation({}, mFence, VK_NULL_HANDLE);
 	VkCommandBuffer commandBuffer = mRenderPassProcess->performOperation(mGraphicsCommandPool);
 
 	// wait for image availability
@@ -182,53 +135,11 @@ void GPUEngine::renderFrame()
 	vkResetFences(mDevice, 1, &mFence);
 
 	// present image
-	{
-		VkPresentInfoKHR presentInfo = {};
-		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.pNext = nullptr;
-		presentInfo.waitSemaphoreCount = 0;
-		presentInfo.pWaitSemaphores = nullptr;
-		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &mSwapchain;
-		presentInfo.pImageIndices = &imageIndex;
-		presentInfo.pResults = nullptr;
-		vkQueuePresentKHR(mPresentQueue, &presentInfo);
-	}
+	mPresentProcess->performOperation({}, VK_NULL_HANDLE, VK_NULL_HANDLE);
 
 	// free command buffer and reset pool
 	vkFreeCommandBuffers(mDevice, mGraphicsCommandPool, 1, &commandBuffer);
 	vkResetCommandPool(mDevice, mGraphicsCommandPool, 0);
-}
-
-bool GPUEngine::chooseSurfaceFormat()
-{
-	// query available formats
-	uint32_t numFormats;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &numFormats, nullptr);
-	std::vector<VkSurfaceFormatKHR> formats(numFormats);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &numFormats, formats.data());
-
-	if (numFormats == 0)
-		return false;
-
-	int bestRating = -1;
-	VkSurfaceFormatKHR bestFormat;
-	for (auto& format : formats)
-	{
-		int rating = 0;
-
-		if (format.format == VK_FORMAT_B8G8R8A8_SRGB)
-			rating += 2;
-
-		if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-			rating += 1;
-
-		if (rating > bestRating)
-			bestFormat = format;
-	}
-
-	mSurfaceFormat = bestFormat;
-	return true;
 }
 
 bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
@@ -375,46 +286,6 @@ bool GPUEngine::createCommandPools()
 	createInfo.queueFamilyIndex = mGraphicsQueueFamily;
 
 	VkResult result = vkCreateCommandPool(mDevice, &createInfo, nullptr, &mGraphicsCommandPool);
-	return (result == VK_SUCCESS);
-}
-
-bool GPUEngine::createSwapchain()
-{
-	if (!chooseSurfaceFormat())
-		return false;
-
-	VkSwapchainCreateInfoKHR createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.pNext = nullptr;
-	createInfo.flags = 0;
-	createInfo.surface = mSurface;
-	createInfo.minImageCount = 2;
-	createInfo.imageFormat = mSurfaceFormat.format;
-	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
-	createInfo.imageExtent = mSurfaceExtent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	uint32_t queueFamilyIndices[] = { mGraphicsQueueFamily, mPresentQueueFamily };
-	if (mGraphicsQueueFamily == mPresentQueueFamily)
-	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		createInfo.queueFamilyIndexCount = 0;
-		createInfo.pQueueFamilyIndices = nullptr;
-	}
-	else
-	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	}
-	createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	createInfo.clipped = VK_TRUE;
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-	VkResult result = vkCreateSwapchainKHR(mDevice, &createInfo, nullptr, &mSwapchain);
 	return (result == VK_SUCCESS);
 }
 
