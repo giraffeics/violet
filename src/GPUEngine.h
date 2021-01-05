@@ -28,6 +28,7 @@ public:
 	VkCommandBuffer allocateCommandBuffer(VkCommandPool commandPool);
 	VkSemaphore createSemaphore();
 	VkFence createFence(VkFenceCreateFlags flags);
+	bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }

@@ -148,6 +148,54 @@ VkFence GPUEngine::createFence(VkFenceCreateFlags flags)
 	return fence;
 }
 
+bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory)
+{
+	// create the buffer
+	VkBufferCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.size = size;
+	createInfo.usage = usageFlags;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.queueFamilyIndexCount = 0;
+
+	if (vkCreateBuffer(mDevice, &createInfo, nullptr, &buffer) != VK_SUCCESS)
+		return false;
+
+	// find a suitable memory type
+	VkMemoryRequirements memoryRequirements;
+	vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memoryProperties);
+
+	uint32_t memoryType = UINT32_MAX;
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+		if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & memoryFlags))
+		{
+			memoryType = i;
+			break;
+		}
+	if (memoryType == UINT32_MAX)
+		return false;
+
+	// allocate memory
+	VkMemoryAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocateInfo.pNext = nullptr;
+	allocateInfo.allocationSize = size;
+	allocateInfo.memoryTypeIndex = memoryType;
+
+	if (vkAllocateMemory(mDevice, &allocateInfo, nullptr, &memory) != VK_SUCCESS)
+		return false;
+
+	// bind memory
+	if (vkBindBufferMemory(mDevice, buffer, memory, 0) != VK_SUCCESS)
+		return false;
+
+	return true;
+}
+
 void GPUEngine::renderFrame()
 {
 	mDependencyGraph->executeSequence();
