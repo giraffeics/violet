@@ -20,9 +20,9 @@ const GPUProcess::PassableResource<VkImageView>* GPUProcessSwapchain::getPRImage
 	return mPRCurrentImageView.get();
 }
 
-VkFormat GPUProcessSwapchain::getImageFormat()
+const VkFormat* GPUProcessSwapchain::getImageFormatPTR()
 {
-	return mSurfaceFormat.format;
+	return &(mSurfaceFormat.format);
 }
 
 bool GPUProcessSwapchain::isOperationCommand()

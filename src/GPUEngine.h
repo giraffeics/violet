@@ -3,11 +3,13 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
 #include "GPUProcess.h"
+#include "GPUDependencyGraph.h"
 
 class GPUPipeline;
 
@@ -29,6 +31,8 @@ public:
 	uint32_t getGraphicsQueueFamily() { return mGraphicsQueueFamily; }
 	uint32_t getPresentQueueFamily() { return mPresentQueueFamily; }
 	VkQueue getPresentQueue() { return mPresentQueue; }
+	VkCommandPool getGraphicsPool() { return mGraphicsCommandPool; }
+	VkQueue getGraphicsQueue() { return mGraphicsQueue; }
 	VkSurfaceKHR getSurface() { return mSurface; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkRenderPass getRenderPass() { return mRenderPass; }
@@ -62,6 +66,7 @@ private:
 	VkImageView currentImageView;
 	GPUProcess* mSwapchainProcess;
 	GPUProcess* mPresentProcess;
+	std::unique_ptr<GPUDependencyGraph> mDependencyGraph;
 
 	// Vulkan objects owned by GPUEngine
 	VkInstance mInstance = VK_NULL_HANDLE;

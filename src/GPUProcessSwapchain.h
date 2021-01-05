@@ -14,7 +14,7 @@ public:
 
 	GPUProcessPresent* getPresentProcess();
 	const PassableResource<VkImageView>* getPRImageView();
-	VkFormat getImageFormat();
+	const VkFormat* getImageFormatPTR();
 
 	// virtual functions inherited from GPUProcess
 	virtual bool isOperationCommand();

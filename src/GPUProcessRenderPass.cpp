@@ -2,15 +2,19 @@
 
 #include "GPUEngine.h"
 
-void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
+GPUProcessRenderPass::GPUProcessRenderPass()
 {
-	mPRImageView = prImageView;
 	mPRImageViewOut = std::make_unique<PassableResource<VkImageView>>(this, &mCurrentImageView);
 }
 
-void GPUProcessRenderPass::setImageFormat(VkFormat format)
+void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
 {
-	mImageFormat = format;
+	mPRImageView = prImageView;
+}
+
+void GPUProcessRenderPass::setImageFormatPTR(const VkFormat* format)
+{
+	mImageFormatPTR = format;
 }
 
 const GPUProcess::PassableResource<VkImageView>* GPUProcessRenderPass::getImageViewOutPR()
@@ -113,7 +117,7 @@ bool GPUProcessRenderPass::createRenderPass()
 	// create render pass
 	VkAttachmentDescription attachmentDescription = {};
 	attachmentDescription.flags = 0;
-	attachmentDescription.format = mImageFormat;
+	attachmentDescription.format = *mImageFormatPTR;
 	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

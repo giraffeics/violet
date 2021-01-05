@@ -57,19 +57,24 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 		std::cout << "Could not create command pools!!" << std::endl;
 
 	// temporary test code for PassableResource for imageviews
+	mDependencyGraph = std::make_unique<GPUDependencyGraph>(this);
+
 	mSwapchainProcess = new GPUProcessSwapchain;
 	mSwapchainProcess->setEngine(this);
-	mSwapchainProcess->acquireLongtermResources();
-
-	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
-	mPresentProcess->setEngine(this);
-	mPresentProcess->acquireLongtermResources();
 
 	mRenderPassProcess = new GPUProcessRenderPass;
 	mRenderPassProcess->setEngine(this);
-	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormat(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormat());
+	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormatPTR(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
-	mRenderPassProcess->acquireLongtermResources();
+
+	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
+	mPresentProcess->setEngine(this);
+	((GPUProcessPresent*)mPresentProcess)->setImageViewInPR(((GPUProcessRenderPass*)mRenderPassProcess)->getImageViewOutPR());
+
+	mDependencyGraph->addProcess(mSwapchainProcess);
+	mDependencyGraph->addProcess(mPresentProcess);
+	mDependencyGraph->addProcess(mRenderPassProcess);
+	mDependencyGraph->build();
 }
 
 bool GPUEngine::createSurface()
@@ -111,46 +116,7 @@ VkSemaphore GPUEngine::createSemaphore()
 
 void GPUEngine::renderFrame()
 {
-	// Create fence if it does not exist
-	// TODO: create sync objects elsewhere
-	if (mFence == VK_NULL_HANDLE)
-	{
-		VkFenceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
-
-		vkCreateFence(mDevice, &createInfo, nullptr, &mFence);
-	}
-
-	// Acquire image
-	mSwapchainProcess->performOperation({}, mFence, VK_NULL_HANDLE);
-	VkCommandBuffer commandBuffer = mRenderPassProcess->performOperation(mGraphicsCommandPool);
-
-	// wait for image availability
-	vkWaitForFences(mDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(mDevice, 1, &mFence);
-
-	// submit command buffer
-	{
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pNext = nullptr;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-		vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mFence);
-	}
-
-	// wait for command buffer completion
-	vkWaitForFences(mDevice, 1, &mFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(mDevice, 1, &mFence);
-
-	// present image
-	mPresentProcess->performOperation({}, VK_NULL_HANDLE, VK_NULL_HANDLE);
-
-	// free command buffer and reset pool
-	vkFreeCommandBuffers(mDevice, mGraphicsCommandPool, 1, &commandBuffer);
-	vkResetCommandPool(mDevice, mGraphicsCommandPool, 0);
+	mDependencyGraph->executeSequence();
 }
 
 bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)

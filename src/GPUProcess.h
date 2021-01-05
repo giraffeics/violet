@@ -22,7 +22,7 @@ public:
 		// do not allow instances of base class
 		~PassableResourceBase() {};
 
-	private:
+	protected:
 		GPUProcess* mProcess = nullptr;
 	};
 	
@@ -46,7 +46,6 @@ public:
 		}
 
 	private:
-		GPUProcess* mProcess = nullptr;
 		T* mVkHandle = nullptr;
 		std::vector<T> mPossibleValues = {};
 	};
