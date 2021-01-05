@@ -57,6 +57,7 @@ public:
 	};
 
 	// GPUProcess functionality
+	virtual ~GPUProcess() = default;
 	void setEngine(GPUEngine* engine);
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count);
 	virtual const char** getRequiredDeviceExtensions(uint32_t* count);

@@ -7,6 +7,19 @@ GPUProcessRenderPass::GPUProcessRenderPass()
 	mPRImageViewOut = std::make_unique<PassableResource<VkImageView>>(this, &mCurrentImageView);
 }
 
+GPUProcessRenderPass::~GPUProcessRenderPass()
+{
+	VkDevice device = mEngine->getDevice();
+
+	for (auto& framebuffer : mFramebuffers)
+	{
+		vkDestroyFramebuffer(device, framebuffer.second, nullptr);
+	}
+
+	vkDestroyRenderPass(device, mRenderPass, nullptr);
+	delete mPipeline;
+}
+
 void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
 {
 	mPRImageView = prImageView;

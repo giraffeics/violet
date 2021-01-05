@@ -8,7 +8,9 @@ class GPUWindowSystemGLFW : public GPUWindowSystem
 {
 public:
 	GPUWindowSystemGLFW();
-
+	GPUWindowSystemGLFW(GPUWindowSystemGLFW& other) = delete;
+	GPUWindowSystemGLFW(GPUWindowSystemGLFW&& other) = delete;
+	GPUWindowSystemGLFW& operator=(GPUWindowSystemGLFW& other) = delete;
 	~GPUWindowSystemGLFW();
 
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count);

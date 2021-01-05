@@ -11,7 +11,12 @@
 class GPUProcessRenderPass : public GPUProcess
 {
 public:
+	// constructors and destructor
 	GPUProcessRenderPass();
+	GPUProcessRenderPass(GPUProcessRenderPass& other) = delete;
+	GPUProcessRenderPass(GPUProcessRenderPass&& other) = delete;
+	GPUProcessRenderPass& operator=(GPUProcessRenderPass& other) = delete;
+	~GPUProcessRenderPass();
 
 	// functions for setting up passable resource relationships
 	void setImageViewPR(const PassableResource<VkImageView>* prImageView);

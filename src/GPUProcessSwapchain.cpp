@@ -10,6 +10,18 @@ GPUProcessSwapchain::GPUProcessSwapchain()
 	mPresentProcess = std::make_unique<GPUProcessPresent>(this);
 }
 
+GPUProcessSwapchain::~GPUProcessSwapchain()
+{
+	VkDevice device = mEngine->getDevice();
+
+	for (auto& frame : mFrames)
+	{
+		vkDestroyImageView(device, frame.imageView, nullptr);
+	}
+
+	vkDestroySwapchainKHR(device, mSwapchain, nullptr);
+}
+
 GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
 {
 	return mPresentProcess.get();

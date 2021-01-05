@@ -163,6 +163,19 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 	vkCreateGraphicsPipelines(mEngine->getDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline);
 }
 
+GPUPipeline::~GPUPipeline()
+{
+	VkDevice device = mEngine->getDevice();
+
+	vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
+	vkDestroyPipeline(device, mPipeline, nullptr);
+
+	for (VkShaderModule module : mShaderModules)
+	{
+		vkDestroyShaderModule(device, module, nullptr);
+	}
+}
+
 void GPUPipeline::bind(VkCommandBuffer commandBuffer)
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);

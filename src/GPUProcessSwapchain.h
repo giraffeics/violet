@@ -10,8 +10,14 @@ class GPUProcessSwapchain : public GPUProcess
 	friend class GPUProcessPresent;
 
 public:
+	// constructors and destructor
 	GPUProcessSwapchain();
+	GPUProcessSwapchain(GPUProcessSwapchain& other) = delete;
+	GPUProcessSwapchain(GPUProcessSwapchain&& other) = delete;
+	GPUProcessSwapchain& operator=(GPUProcessSwapchain& other) = delete;
+	~GPUProcessSwapchain();
 
+	// public getters
 	GPUProcessPresent* getPresentProcess();
 	const PassableResource<VkImageView>* getPRImageView();
 	const VkFormat* getImageFormatPTR();

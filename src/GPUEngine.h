@@ -16,8 +16,12 @@ class GPUPipeline;
 class GPUEngine
 {
 public:
-	// Constructor
+	// Constructors & Destructor
 	GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion = 0, uint32_t engineVersion = 0);
+	GPUEngine(GPUEngine& other) = delete;
+	GPUEngine(GPUEngine&& other) = delete;
+	GPUEngine& operator=(GPUEngine& other) = delete;
+	~GPUEngine();
 
 	// Public functionality
 	void renderFrame();
@@ -87,7 +91,14 @@ private:
 class GPUPipeline
 {
 public:
+	// constructors and destructor
 	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass);
+	GPUPipeline(GPUPipeline& other) = delete;
+	GPUPipeline(GPUPipeline&& other) = delete;
+	GPUPipeline& operator=(GPUPipeline& other) = delete;
+	~GPUPipeline();
+
+	// public functionality
 	bool valid();
 	void bind(VkCommandBuffer commandBuffer);
 private:

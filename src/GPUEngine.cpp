@@ -77,6 +77,27 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mDependencyGraph->build();
 }
 
+GPUEngine::~GPUEngine()
+{
+	// explicitly delete the dependency graph
+	// (destructor must be called while instance exists)
+	mDependencyGraph.reset();
+
+	// delete processes
+	delete mRenderPassProcess;
+	delete mSwapchainProcess;
+
+	// destroy command pools
+	vkDestroyCommandPool(mDevice, mGraphicsCommandPool, nullptr);
+
+	// destroy other owned objects
+	vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+
+	// finally, destroy device and instance
+	vkDestroyDevice(mDevice, nullptr);
+	vkDestroyInstance(mInstance, nullptr);
+}
+
 bool GPUEngine::createSurface()
 {
 	mSurface = mWindowSystem->createSurface(mInstance);

@@ -13,6 +13,7 @@ class GPUDependencyGraph
 {
 public:
 	GPUDependencyGraph(GPUEngine* engine);
+	~GPUDependencyGraph();
 	void addProcess(GPUProcess* process);
 	void build();
 	void executeSequence();

@@ -7,6 +7,11 @@ GPUDependencyGraph::GPUDependencyGraph(GPUEngine* engine)
 	mEngine = engine;
 }
 
+GPUDependencyGraph::~GPUDependencyGraph()
+{
+	cleanupEdges();
+}
+
 void GPUDependencyGraph::addProcess(GPUProcess* process)
 {
 	// add a node to the list
