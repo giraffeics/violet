@@ -27,6 +27,7 @@ public:
 	void renderFrame();
 	VkCommandBuffer allocateCommandBuffer(VkCommandPool commandPool);
 	VkSemaphore createSemaphore();
+	VkFence createFence(VkFenceCreateFlags flags);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }

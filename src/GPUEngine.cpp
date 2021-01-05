@@ -135,6 +135,19 @@ VkSemaphore GPUEngine::createSemaphore()
 	return semaphore;
 }
 
+VkFence GPUEngine::createFence(VkFenceCreateFlags flags)
+{
+	VkFence fence;
+
+	VkFenceCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = flags;
+
+	vkCreateFence(mDevice, &createInfo, nullptr, &fence);
+	return fence;
+}
+
 void GPUEngine::renderFrame()
 {
 	mDependencyGraph->executeSequence();
