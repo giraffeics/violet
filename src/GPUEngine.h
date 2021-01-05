@@ -20,6 +20,7 @@ public:
 	// Public functionality
 	void renderFrame();
 	VkCommandBuffer allocateCommandBuffer(VkCommandPool commandPool);
+	VkSemaphore createSemaphore();
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }

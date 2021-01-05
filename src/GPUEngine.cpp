@@ -98,6 +98,17 @@ VkCommandBuffer GPUEngine::allocateCommandBuffer(VkCommandPool commandPool)
 	return commandBuffer;
 }
 
+VkSemaphore GPUEngine::createSemaphore()
+{
+	VkSemaphore semaphore;
+	VkSemaphoreCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	vkCreateSemaphore(mDevice, &createInfo, nullptr, &semaphore);
+	return semaphore;
+}
+
 void GPUEngine::renderFrame()
 {
 	// Create fence if it does not exist
