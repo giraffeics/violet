@@ -21,8 +21,7 @@ foreach(INFILE ${shaderfiles})
 	message("Shader target added: ${OUTFILE}")
 	add_custom_target(
 		${OUTFILE}
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
-		COMMAND ${GLSLC} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} "-o" ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${OUTFILE}
+		COMMAND ${GLSLC} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} "-o" ${CMAKE_CURRENT_BINARY_DIR}/${OUTFILE}
 		VERBATIM
 		SOURCES ${INFILE})
 	add_dependencies(vkw_shaders ${OUTFILE})
