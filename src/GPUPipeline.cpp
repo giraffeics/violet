@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "GPUMesh.h"
+
 GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass)
 {
 	mEngine = engine;
@@ -69,12 +71,23 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 
 	// specify fixed-function details
 	// TODO: make this more versatile
+	VkVertexInputAttributeDescription attribDescription = {};
+	attribDescription.binding = 0;
+	attribDescription.location = 0;
+	attribDescription.offset = 0;
+	VkVertexInputBindingDescription bindingDescription = {};
+	bindingDescription.binding = 0;
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	GPUMesh::getAttributeProperties(bindingDescription.stride, attribDescription.format, GPUMesh::MESH_ATTRIBUTE_POSITION);
+
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.pNext = nullptr;
 	vertexInputInfo.flags = 0;
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.vertexAttributeDescriptionCount = 1;
+	vertexInputInfo.pVertexAttributeDescriptions = &attribDescription;
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 
 	VkPipelineInputAssemblyStateCreateInfo assemblyInfo = {};
 	assemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

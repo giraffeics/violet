@@ -241,6 +241,7 @@ void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize 
 
 		vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mTransferFence);
 		vkWaitForFences(mDevice, 1, &mTransferFence, VK_TRUE, UINT64_MAX);
+		vkResetFences(mDevice, 1, &mTransferFence);
 
 		vkFreeCommandBuffers(mDevice, mGraphicsCommandPool, 1, &commandBuffer);
 	}

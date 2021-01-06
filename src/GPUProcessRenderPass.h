@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "GPUEngine.h"
+#include "GPUMesh.h"
 
 class GPUProcessRenderPass : public GPUProcess
 {
@@ -39,6 +40,9 @@ private:
 	VkRenderPass mRenderPass;
 	GPUPipeline* mPipeline;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;
+
+	// temporary test variables
+	std::unique_ptr<GPUMesh> mMesh;
 };
 
 #endif

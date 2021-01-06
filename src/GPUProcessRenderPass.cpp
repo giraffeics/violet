@@ -78,7 +78,7 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.pClearValues = &colorClearValue;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		mPipeline->bind(commandBuffer);
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		mMesh->draw(commandBuffer);
 		vkCmdEndRenderPass(commandBuffer);
 	}
 
@@ -89,6 +89,10 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 
 void GPUProcessRenderPass::acquireLongtermResources()
 {
+	// TODO: remove this test code
+	mMesh = std::make_unique<GPUMesh>("", mEngine);
+	mMesh->load();
+
 	// create RenderPass
 	createRenderPass();
 
