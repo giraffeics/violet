@@ -56,6 +56,9 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create command pools!!" << std::endl;
 
+	// create transfer fence
+	mTransferFence = createFence(0);
+
 	// temporary test code for PassableResource for imageviews
 	mDependencyGraph = std::make_unique<GPUDependencyGraph>(this);
 
@@ -91,6 +94,7 @@ GPUEngine::~GPUEngine()
 	vkDestroyCommandPool(mDevice, mGraphicsCommandPool, nullptr);
 
 	// destroy other owned objects
+	vkDestroyFence(mDevice, mTransferFence, nullptr);
 	vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 
 	// finally, destroy device and instance
@@ -183,7 +187,7 @@ bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, V
 	VkMemoryAllocateInfo allocateInfo = {};
 	allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocateInfo.pNext = nullptr;
-	allocateInfo.allocationSize = size;
+	allocateInfo.allocationSize = memoryRequirements.size;
 	allocateInfo.memoryTypeIndex = memoryType;
 
 	if (vkAllocateMemory(mDevice, &allocateInfo, nullptr, &memory) != VK_SUCCESS)
@@ -194,6 +198,55 @@ bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, V
 		return false;
 
 	return true;
+}
+
+// TODO: optimize this to avoid unnecessary memory allocation and play nice
+// with multiple threads
+void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize size, VkDeviceSize offset)
+{
+	// create staging buffer
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+	createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, stagingBuffer, stagingMemory);
+
+	// stage & transfer data
+	// TODO: optimize staging & transfer to avoid unnecessary memory allocation
+	void* dataPtr;
+	vkMapMemory(mDevice, stagingMemory, 0, size, 0, &dataPtr);
+		memcpy(dataPtr, data, (size_t)size);
+	vkUnmapMemory(mDevice, stagingMemory);
+
+	{
+		VkCommandBuffer commandBuffer = allocateCommandBuffer(mGraphicsCommandPool);
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.pNext = nullptr;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+		VkBufferCopy copyRegion = {};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = size;
+		vkCmdCopyBuffer(commandBuffer, stagingBuffer, destination, 1, &copyRegion);
+
+		vkEndCommandBuffer(commandBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.pNext = nullptr;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mTransferFence);
+		vkWaitForFences(mDevice, 1, &mTransferFence, VK_TRUE, UINT64_MAX);
+
+		vkFreeCommandBuffers(mDevice, mGraphicsCommandPool, 1, &commandBuffer);
+	}
+
+	vkFreeMemory(mDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
 }
 
 void GPUEngine::renderFrame()

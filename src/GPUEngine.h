@@ -29,6 +29,7 @@ public:
 	VkSemaphore createSemaphore();
 	VkFence createFence(VkFenceCreateFlags flags);
 	bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory);
+	void transferToBuffer(VkBuffer destination, void* data, VkDeviceSize size, VkDeviceSize offset);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
@@ -86,7 +87,7 @@ private:
 	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
 	VkExtent2D mSurfaceExtent;
 	VkRenderPass mRenderPass = VK_NULL_HANDLE;
-	VkFence mFence = VK_NULL_HANDLE;
+	VkFence mTransferFence = VK_NULL_HANDLE;
 	GPUPipeline* mPipeline = nullptr;
 };
 
