@@ -90,7 +90,7 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 void GPUProcessRenderPass::acquireLongtermResources()
 {
 	// TODO: remove this test code
-	mMesh = std::make_unique<GPUMesh>("", mEngine);
+	mMesh = std::make_unique<GPUMesh>("face.glb", mEngine);
 	mMesh->load();
 
 	// create RenderPass

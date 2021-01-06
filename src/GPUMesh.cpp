@@ -1,5 +1,11 @@
 #include "GPUMesh.h"
 
+#include <iostream>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #include "GPUEngine.h"
 
 /**
@@ -24,6 +30,7 @@ bool GPUMesh::getAttributeProperties(uint32_t& stride, VkFormat& format, GPUMesh
 GPUMesh::GPUMesh(std::string name, GPUEngine* engine)
 {
 	mEngine = engine;
+	mName = name;
 }
 
 GPUMesh::~GPUMesh()
@@ -59,6 +66,7 @@ void GPUMesh::draw(VkCommandBuffer commandBuffer)
 bool GPUMesh::loadFileData(DataVectors& data)
 {
 	// hard-coded test data
+	/*
 	data.position = {
 		{-0.4, -0.4, 0.0 },
 		{ 0.4, -0.4, 0.0 },
@@ -69,6 +77,38 @@ bool GPUMesh::loadFileData(DataVectors& data)
 	data.index = {
 		0, 1, 2, 2, 3, 0
 	};
+
+	//return true;	//*/
+
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile("../assets/"+mName, aiProcess_Triangulate);
+
+	if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !(scene->mRootNode))
+		return false;
+
+	auto node = scene->mRootNode;
+	if (node->mNumMeshes < 1)
+		return false;
+	auto mesh = scene->mMeshes[node->mMeshes[0]];
+
+	data.position.clear();
+	data.index.clear();
+
+	for (size_t i = 0; i < mesh->mNumVertices; i++)
+	{
+		data.position.push_back({
+			mesh->mVertices[i].x,
+			-mesh->mVertices[i].y,
+			mesh->mVertices[i].z}
+		);
+	}
+
+	for (size_t i = 0; i < mesh->mNumFaces; i++)
+	{
+		auto& face = mesh->mFaces[i];
+		for (size_t j = 0; j < 3; j++)
+			data.index.push_back(face.mIndices[j]);
+	}
 
 	return true;
 }

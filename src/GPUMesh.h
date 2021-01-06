@@ -45,6 +45,7 @@ private:
 	static VkDeviceSize getBufferDataSize(DataVectors& data);
 
 	// private member variables
+	std::string mName;
 	GPUEngine* mEngine;
 	VkFence mFence = VK_NULL_HANDLE;
 	VkBuffer mPositionBuffer = VK_NULL_HANDLE;
