@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.8)
 
 project("VKWhatever")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
 # ADD PROJECT SOURCES
 add_subdirectory("src")
 
@@ -21,6 +23,3 @@ include_directories("glfw/include")
 # SET UP GLM LIBRARY
 add_subdirectory("glm")
 include_directories("glm")
-
-# SET UP GLTF LIBRARY
-add_subdirectory("tiny_gltf")

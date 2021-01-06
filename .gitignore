@@ -2,6 +2,7 @@
 .vscode/
 build/
 out/
+bin/
 *.exe
 *.o
 *.spv
