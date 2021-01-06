@@ -23,3 +23,6 @@ include_directories("glfw/include")
 # SET UP GLM LIBRARY
 add_subdirectory("glm")
 include_directories("glm")
+
+# SET UP GLTF LIBRARY
+add_subdirectory("tiny_gltf")
