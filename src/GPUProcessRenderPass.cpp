@@ -1,7 +1,7 @@
 #include "GPUProcessRenderPass.h"
 
 #include "GPUEngine.h"
-#include <glm/gtc/matrix_transform.hpp>
+#include "glm_includes.h"
 
 GPUProcessRenderPass::GPUProcessRenderPass()
 {

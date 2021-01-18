@@ -4,10 +4,10 @@
 #include <memory>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
 
 #include "GPUProcess.h"
 #include "GPUMesh.h"
+#include "glm_includes.h"
 
 class GPUEngine;
 

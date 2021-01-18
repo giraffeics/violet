@@ -1,7 +1,6 @@
 #include "GPUMeshWrangler.h"
 
-#include <glm/gtx/transform.hpp>
-
+#include "glm_includes.h"
 #include "GPUEngine.h"
 
 GPUMeshWrangler::GPUMeshWrangler(GPUEngine* engine)

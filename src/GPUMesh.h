@@ -2,9 +2,10 @@
 #define GPUMESH_H
 
 #include <vulkan/vulkan.h>
-#include <glm/gtx/transform.hpp>
 #include <string>
 #include <vector>
+
+#include "glm_includes.h"
 
 class GPUEngine;
 
