@@ -16,6 +16,8 @@ public:
 	~GPUDependencyGraph();
 	void addProcess(GPUProcess* process);
 	void build();
+	void invalidateFrameResources();
+	void acquireFrameResources();
 	void executeSequence();
 
 private:

@@ -51,3 +51,13 @@ void GPUProcess::acquireLongtermResources()
 {
 	// do nothing for default implementation
 }
+
+void GPUProcess::acquireFrameResources()
+{
+	// do nothing for default implementation
+}
+
+void GPUProcess::cleanupFrameResources()
+{
+	// do nothing for default implementation
+}

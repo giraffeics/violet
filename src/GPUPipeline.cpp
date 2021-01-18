@@ -7,7 +7,30 @@
 GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass)
 {
 	mEngine = engine;
+	mRenderPass = renderPass;
 
+	buildShaderModules(shaderNames, shaderStages);
+
+	// specify shader stages
+	for (size_t i = 0; i < mShaderModules.size(); i++)
+	{
+		VkPipelineShaderStageCreateInfo createInfo;
+		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		createInfo.stage = shaderStages[i];
+		createInfo.module = mShaderModules[i];
+		createInfo.pName = mEntryPointName;
+		createInfo.pSpecializationInfo = nullptr;
+
+		mShaderStageCreateInfos.push_back(createInfo);
+	}
+
+	buildPipelineLayout();
+}
+
+void GPUPipeline::buildShaderModules(std::vector<std::string>& shaderNames, std::vector<VkShaderStageFlagBits>& shaderStages)
+{
 	// compile each shader
 	for (auto name : shaderNames)
 	{
@@ -30,7 +53,7 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 		createInfo.flags = 0;
 		createInfo.codeSize = fileSize;
 		createInfo.pCode = reinterpret_cast<uint32_t*>(fileBuffer);
-		vkCreateShaderModule(engine->getDevice(), &createInfo, nullptr, &shaderModule);
+		vkCreateShaderModule(mEngine->getDevice(), &createInfo, nullptr, &shaderModule);
 
 		// cleanup
 		delete[] fileBuffer;
@@ -38,37 +61,33 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 		// store in the vector of shader modules
 		mShaderModules.push_back(shaderModule);
 	}
+}
 
-	// specify shader stages
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStageCreateInfos;
-	const char entryPointName[] = "main";
+void GPUPipeline::buildPipelineLayout()
+{
+	// grab model descriptor set layout handle
+	VkDescriptorSetLayout modelLayout = mEngine->getModelDescriptorLayout();
 
-	for (size_t i = 0; i < shaderNames.size(); i++)
-	{
-		VkPipelineShaderStageCreateInfo createInfo;
-		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
-		createInfo.stage = shaderStages[i];
-		createInfo.module = mShaderModules[i];
-		createInfo.pName = entryPointName;
-		createInfo.pSpecializationInfo = nullptr;
+	VkPushConstantRange pushConstantRange = {};
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = 64; // size of glm::mat4
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-		shaderStageCreateInfos.push_back(createInfo);
-	}
+	VkPipelineLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.setLayoutCount = 1;
+	createInfo.pSetLayouts = &modelLayout;
+	createInfo.pushConstantRangeCount = 1;
+	createInfo.pPushConstantRanges = &pushConstantRange;
 
-	// create pipeline layout
-	{
-		VkPipelineLayoutCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		createInfo.pNext = nullptr;
-		createInfo.flags = 0;
-		createInfo.setLayoutCount = 0;
+	if (vkCreatePipelineLayout(mEngine->getDevice(), &createInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+		return;
+}
 
-		if (vkCreatePipelineLayout(mEngine->getDevice(), &createInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-			return;
-	}
-
+void GPUPipeline::buildPipeline()
+{
 	// specify fixed-function details
 	// TODO: make this more versatile
 	VkVertexInputAttributeDescription attribDescription = {};
@@ -156,8 +175,8 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
-	createInfo.stageCount = shaderStageCreateInfos.size();
-	createInfo.pStages = shaderStageCreateInfos.data();
+	createInfo.stageCount = mShaderStageCreateInfos.size();
+	createInfo.pStages = mShaderStageCreateInfos.data();
 	createInfo.pVertexInputState = &vertexInputInfo;
 	createInfo.pInputAssemblyState = &assemblyInfo;
 	createInfo.pTessellationState = nullptr;
@@ -168,7 +187,7 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 	createInfo.pColorBlendState = &colorBlendInfo;
 	createInfo.pDynamicState = nullptr;
 	createInfo.layout = mPipelineLayout;
-	createInfo.renderPass = renderPass;
+	createInfo.renderPass = mRenderPass;
 	createInfo.subpass = 0;
 	createInfo.basePipelineHandle = VK_NULL_HANDLE;
 	createInfo.basePipelineIndex = 0;
@@ -178,10 +197,12 @@ GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames
 
 GPUPipeline::~GPUPipeline()
 {
+	if (valid())
+		invalidate();
+
 	VkDevice device = mEngine->getDevice();
 
 	vkDestroyPipelineLayout(device, mPipelineLayout, nullptr);
-	vkDestroyPipeline(device, mPipeline, nullptr);
 
 	for (VkShaderModule module : mShaderModules)
 	{
@@ -197,5 +218,16 @@ void GPUPipeline::bind(VkCommandBuffer commandBuffer)
 // TODO: implement to check validity
 bool GPUPipeline::valid()
 {
-	return true;
+	return (mPipeline != VK_NULL_HANDLE);
+}
+
+void GPUPipeline::invalidate()
+{
+	vkDestroyPipeline(mEngine->getDevice(), mPipeline, nullptr);
+	mPipeline = VK_NULL_HANDLE;
+}
+
+void GPUPipeline::validate()
+{
+	buildPipeline();
 }

@@ -1,10 +1,20 @@
 #version 450
 
+layout( push_constant ) uniform PushConstantObject
+{
+    mat4 vpMatrix;
+} pco;
+
+layout(binding = 0) uniform UniformBufferObject
+{
+    mat4 model;
+} ubo;
+
 layout(location = 0) in vec3 inPos;
 
 layout(location = 0) out vec3 outColor;
 
 void main() {
-    gl_Position = vec4(inPos, 1.0);
-    outColor = vec3(1.0f, 1.0f, 1.0f);
+    gl_Position = pco.vpMatrix * ubo.model * vec4(inPos, 1.0);
+    outColor = vec3(inPos.z, inPos.z, inPos.z);
 }

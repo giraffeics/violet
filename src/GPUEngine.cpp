@@ -56,8 +56,16 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create command pools!!" << std::endl;
 
+	if (createDescriptorSetLayout())
+		std::cout << "Descriptor set layout created successfully!!" << std::endl;
+	else
+		std::cout << "Could not create descriptor set layout!!" << std::endl;
+
 	// create transfer fence
 	mTransferFence = createFence(0);
+
+	// create mesh wrangler
+	mMeshWrangler = std::make_unique<GPUMeshWrangler>(this);
 
 	// temporary test code for PassableResource for imageviews
 	mDependencyGraph = std::make_unique<GPUDependencyGraph>(this);
@@ -69,6 +77,7 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mRenderPassProcess->setEngine(this);
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormatPTR(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
+	((GPUProcessRenderPass*)mRenderPassProcess)->setUniformBufferPR(mMeshWrangler->getPRUniformBuffer());
 
 	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
 	mPresentProcess->setEngine(this);
@@ -77,14 +86,16 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mDependencyGraph->addProcess(mSwapchainProcess);
 	mDependencyGraph->addProcess(mPresentProcess);
 	mDependencyGraph->addProcess(mRenderPassProcess);
+	mDependencyGraph->addProcess(mMeshWrangler.get());
 	mDependencyGraph->build();
 }
 
 GPUEngine::~GPUEngine()
 {
-	// explicitly delete the dependency graph
+	// explicitly delete unique pointers owning vulkan handles
 	// (destructor must be called while instance exists)
 	mDependencyGraph.reset();
+	mMeshWrangler.reset();
 
 	// delete processes
 	delete mRenderPassProcess;
@@ -96,6 +107,7 @@ GPUEngine::~GPUEngine()
 	// destroy other owned objects
 	vkDestroyFence(mDevice, mTransferFence, nullptr);
 	vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+	vkDestroyDescriptorSetLayout(mDevice, mDescriptorLayoutModel, nullptr);
 
 	// finally, destroy device and instance
 	vkDestroyDevice(mDevice, nullptr);
@@ -253,6 +265,16 @@ void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize 
 void GPUEngine::renderFrame()
 {
 	mDependencyGraph->executeSequence();
+
+	if (((GPUProcessSwapchain*)mSwapchainProcess)->shouldRebuild())
+	{
+		mDependencyGraph->invalidateFrameResources();
+		vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+		createSurface();
+		// TODO: query this in a better way
+		findDevicePresentQueueFamily(mPhysicalDevice, mSurface);
+		mDependencyGraph->acquireFrameResources();
+	}
 }
 
 bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
@@ -400,6 +422,25 @@ bool GPUEngine::createCommandPools()
 
 	VkResult result = vkCreateCommandPool(mDevice, &createInfo, nullptr, &mGraphicsCommandPool);
 	return (result == VK_SUCCESS);
+}
+
+bool GPUEngine::createDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding binding = {};
+	binding.binding = 0;
+	binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	binding.descriptorCount = 1;
+	binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	binding.pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.pNext = nullptr;
+	createInfo.flags = 0;
+	createInfo.bindingCount = 1;
+	createInfo.pBindings = &binding;
+
+	return (vkCreateDescriptorSetLayout(mDevice, &createInfo, nullptr, &mDescriptorLayoutModel) == VK_SUCCESS);
 }
 
 bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)

@@ -67,6 +67,8 @@ public:
 	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 	virtual void acquireLongtermResources();
+	virtual void acquireFrameResources();
+	virtual void cleanupFrameResources();
 
 protected:
 	GPUEngine* mEngine = nullptr;

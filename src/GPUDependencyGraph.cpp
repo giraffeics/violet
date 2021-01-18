@@ -105,6 +105,32 @@ void GPUDependencyGraph::build()
 		for (auto i : group.nodeIndices)
 		{
 			mNodes[i].process->acquireLongtermResources();
+			mNodes[i].process->acquireFrameResources();
+		}
+	}
+}
+
+void GPUDependencyGraph::invalidateFrameResources()
+{
+	// The iteration here needs to be done this way to avoid integer overflow
+	for (size_t i = mSubmitSequence.size(); i > 0;)
+	{
+		i--;
+
+		for (auto i : mSubmitSequence[i].nodeIndices)
+		{
+			mNodes[i].process->cleanupFrameResources();
+		}
+	}
+}
+
+void GPUDependencyGraph::acquireFrameResources()
+{
+	for (auto& group : mSubmitSequence)
+	{
+		for (auto i : group.nodeIndices)
+		{
+			mNodes[i].process->acquireFrameResources();
 		}
 	}
 }
@@ -114,6 +140,8 @@ void GPUDependencyGraph::build()
 // TODO: support batching into non-graphics command queues
 void GPUDependencyGraph::executeSequence()
 {
+	std::vector<VkCommandBuffer> createdCommandBuffers;
+
 	for (auto& group : mSubmitSequence)
 	{
 		// figure out number of submits
@@ -136,6 +164,7 @@ void GPUDependencyGraph::executeSequence()
 			if (node.process->isOperationCommand())
 			{
 				commandBuffers[currentSubmit] = node.process->performOperation(mEngine->getGraphicsPool());
+				createdCommandBuffers.push_back(commandBuffers[currentSubmit]);
 
 				auto& submitInfo = submitInfos[currentSubmit];
 				submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -167,6 +196,9 @@ void GPUDependencyGraph::executeSequence()
 	// TODO: implement better syncronization
 	vkQueueWaitIdle(mEngine->getGraphicsQueue());
 	vkQueueWaitIdle(mEngine->getPresentQueue());
+
+	// TODO: implement better collection of command buffers to avoid unnecessary vector reallocation
+	vkFreeCommandBuffers(mEngine->getDevice(), mEngine->getGraphicsPool(), createdCommandBuffers.size(), createdCommandBuffers.data());
 
 	vkResetCommandPool(mEngine->getDevice(), mEngine->getGraphicsPool(), 0);
 }

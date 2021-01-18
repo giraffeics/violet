@@ -12,14 +12,7 @@ GPUProcessSwapchain::GPUProcessSwapchain()
 
 GPUProcessSwapchain::~GPUProcessSwapchain()
 {
-	VkDevice device = mEngine->getDevice();
-
-	for (auto& frame : mFrames)
-	{
-		vkDestroyImageView(device, frame.imageView, nullptr);
-	}
-
-	vkDestroySwapchainKHR(device, mSwapchain, nullptr);
+	cleanupFrameResources();
 }
 
 GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
@@ -37,12 +30,17 @@ const VkFormat* GPUProcessSwapchain::getImageFormatPTR()
 	return &(mSurfaceFormat.format);
 }
 
+bool GPUProcessSwapchain::shouldRebuild()
+{
+	return mShouldRebuild;
+}
+
 bool GPUProcessSwapchain::isOperationCommand()
 {
 	return false;
 }
 
-void GPUProcessSwapchain::acquireLongtermResources()
+void GPUProcessSwapchain::acquireFrameResources()
 {
 	if (!chooseSurfaceFormat())
 		return;
@@ -50,6 +48,20 @@ void GPUProcessSwapchain::acquireLongtermResources()
 		return;
 	if (!createFrames())
 		return;
+
+	mShouldRebuild = false;
+}
+
+void GPUProcessSwapchain::cleanupFrameResources()
+{
+	VkDevice device = mEngine->getDevice();
+
+	for (auto& frame : mFrames)
+	{
+		vkDestroyImageView(device, frame.imageView, nullptr);
+	}
+
+	vkDestroySwapchainKHR(device, mSwapchain, nullptr);
 }
 
 bool GPUProcessSwapchain::createSwapchain()
@@ -185,8 +197,11 @@ bool GPUProcessSwapchain::chooseSurfaceFormat()
 
 void GPUProcessSwapchain::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
-	vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, std::numeric_limits<uint64_t>::max(), semaphore, fence, &mCurrentImageIndex);
+	VkResult result = vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, std::numeric_limits<uint64_t>::max(), semaphore, fence, &mCurrentImageIndex);
 	currentImageView = mFrames[mCurrentImageIndex].imageView;
+
+	if (result != VK_SUCCESS)
+		mShouldRebuild = true;
 }
 
 void GPUProcessSwapchain::present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)

@@ -10,6 +10,7 @@
 
 #include "GPUProcess.h"
 #include "GPUDependencyGraph.h"
+#include "GPUMeshWrangler.h"
 
 class GPUPipeline;
 
@@ -43,6 +44,8 @@ public:
 	VkSurfaceKHR getSurface() { return mSurface; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkRenderPass getRenderPass() { return mRenderPass; }
+	VkDescriptorSetLayout getModelDescriptorLayout() { return mDescriptorLayoutModel; }
+	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler.get(); }
 
 private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
@@ -50,6 +53,7 @@ private:
 	bool createLogicalDevice(const std::vector<const char*>& extensions);
 	bool createSurface();
 	bool createCommandPools();
+	bool createDescriptorSetLayout();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -68,12 +72,15 @@ private:
 
 	static std::vector<const char*> validationLayers;
 
-	// Temporary objects for testing GPUProcess system
+	// GPUProcess objects;
+	// TODO: move these handles elsewhere, as the engine should
+	// not be responsible for deciding what GPUProcesses are used
 	GPUProcess* mRenderPassProcess;
 	VkImageView currentImageView;
 	GPUProcess* mSwapchainProcess;
 	GPUProcess* mPresentProcess;
 	std::unique_ptr<GPUDependencyGraph> mDependencyGraph;
+	std::unique_ptr<GPUMeshWrangler> mMeshWrangler;
 
 	// Vulkan objects owned by GPUEngine
 	VkInstance mInstance = VK_NULL_HANDLE;
@@ -88,6 +95,7 @@ private:
 	VkExtent2D mSurfaceExtent;
 	VkRenderPass mRenderPass = VK_NULL_HANDLE;
 	VkFence mTransferFence = VK_NULL_HANDLE;
+	VkDescriptorSetLayout mDescriptorLayoutModel = VK_NULL_HANDLE;
 	GPUPipeline* mPipeline = nullptr;
 };
 
@@ -101,12 +109,26 @@ public:
 	GPUPipeline& operator=(GPUPipeline& other) = delete;
 	~GPUPipeline();
 
+	// public getters & setters
+	VkPipelineLayout getLayout() { return mPipelineLayout; }
+
 	// public functionality
 	bool valid();
+	void invalidate();
+	void validate();
 	void bind(VkCommandBuffer commandBuffer);
 private:
+	// private member functions
+	void buildShaderModules(std::vector<std::string>& shaderNames, std::vector<VkShaderStageFlagBits>& shaderStages);
+	void buildPipelineLayout();
+	void buildPipeline();
+
+	// private member variables
 	GPUEngine* mEngine;
 	std::vector<VkShaderModule> mShaderModules;
+	const char mEntryPointName[5] = "main";
+	std::vector<VkPipelineShaderStageCreateInfo> mShaderStageCreateInfos;
+	VkRenderPass mRenderPass;
 	VkPipelineLayout mPipelineLayout;
 	VkPipeline mPipeline;
 };

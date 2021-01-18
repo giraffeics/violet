@@ -21,6 +21,7 @@ public:
 
 	// functions for setting up passable resource relationships
 	void setImageViewPR(const PassableResource<VkImageView>* prImageView);
+	void setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer);
 	void setImageFormatPTR(const VkFormat* format);
 	const PassableResource<VkImageView>* getImageViewOutPR();
 
@@ -29,20 +30,20 @@ public:
 	virtual VkQueueFlags getNeededQueueType();
 	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
 	virtual void acquireLongtermResources();
+	virtual void acquireFrameResources();
+	virtual void cleanupFrameResources();
 
 private:
 	bool createRenderPass();
 
 	const PassableResource<VkImageView>* mPRImageView = nullptr;
+	const PassableResource<VkBuffer>* mPRUniformBuffer = nullptr;
 	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
 	const VkFormat* mImageFormatPTR;
 	VkRenderPass mRenderPass;
 	GPUPipeline* mPipeline;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;
-
-	// temporary test variables
-	std::unique_ptr<GPUMesh> mMesh;
 };
 
 #endif

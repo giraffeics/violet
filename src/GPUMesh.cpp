@@ -65,21 +65,6 @@ void GPUMesh::draw(VkCommandBuffer commandBuffer)
 // TODO: actually load data from a file
 bool GPUMesh::loadFileData(DataVectors& data)
 {
-	// hard-coded test data
-	/*
-	data.position = {
-		{-0.4, -0.4, 0.0 },
-		{ 0.4, -0.4, 0.0 },
-		{ 0.3,  0.3, 0.0 },
-		{-0.4,  0.4, 0.0 }
-	};
-
-	data.index = {
-		0, 1, 2, 2, 3, 0
-	};
-
-	//return true;	//*/
-
 	Assimp::Importer importer;
 	const aiScene* scene = importer.ReadFile("../assets/"+mName, aiProcess_Triangulate);
 

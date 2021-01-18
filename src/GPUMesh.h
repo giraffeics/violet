@@ -2,7 +2,7 @@
 #define GPUMESH_H
 
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 #include <string>
 #include <vector>
 
@@ -15,6 +15,15 @@ public:
 	{
 		MESH_ATTRIBUTE_POSITION,
 		MESH_ATTRIBUTE_ENUM_LENGTH
+	};
+
+	// holds data on one instance of a mesh, to be considered for rendering
+	class Instance
+	{
+	public:
+		GPUMesh* mMesh;
+		glm::mat4 mTransform = glm::identity<glm::mat4>();
+		uint32_t mDynamicOffset = 0;
 	};
 
 	static bool getAttributeProperties(uint32_t& stride, VkFormat& format, AttributeType type);

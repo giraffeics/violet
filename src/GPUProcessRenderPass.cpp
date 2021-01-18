@@ -1,6 +1,7 @@
 #include "GPUProcessRenderPass.h"
 
 #include "GPUEngine.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 GPUProcessRenderPass::GPUProcessRenderPass()
 {
@@ -11,11 +12,7 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 {
 	VkDevice device = mEngine->getDevice();
 
-	for (auto& framebuffer : mFramebuffers)
-	{
-		vkDestroyFramebuffer(device, framebuffer.second, nullptr);
-	}
-
+	cleanupFrameResources();
 	vkDestroyRenderPass(device, mRenderPass, nullptr);
 	delete mPipeline;
 }
@@ -23,6 +20,11 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
 {
 	mPRImageView = prImageView;
+}
+
+void GPUProcessRenderPass::setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer)
+{
+	mPRUniformBuffer = prUniformBuffer;
 }
 
 void GPUProcessRenderPass::setImageFormatPTR(const VkFormat* format)
@@ -37,7 +39,10 @@ const GPUProcess::PassableResource<VkImageView>* GPUProcessRenderPass::getImageV
 
 std::vector<GPUProcess::PRDependency>  GPUProcessRenderPass::getPRDependencies()
 {
-	return std::vector<PRDependency>({ {mPRImageView, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT} });
+	return std::vector<PRDependency>({ 
+		{mPRImageView, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+		{mPRUniformBuffer, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT}
+	});
 }
 
 VkQueueFlags GPUProcessRenderPass::getNeededQueueType()
@@ -65,6 +70,12 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 
 	// begin and end render pass
 	{
+		VkPipelineLayout pipelineLayout = mPipeline->getLayout();
+		GPUMeshWrangler* meshWrangler = mEngine->getMeshWrangler();
+		glm::vec3 tvec = { 0.0f, 0.0f, -3.0f };
+		auto extent = mEngine->getSurfaceExtent();
+		glm::mat4 viewProjection = glm::perspective(45.0f, ((float)extent.width / (float)extent.height), 0.01f, 100.0f) * glm::translate(glm::identity<glm::mat4>(), tvec);
+
 		VkClearValue colorClearValue = { 0.8f, 0.1f, 0.3f, 1.0f };
 
 		VkRenderPassBeginInfo beginInfo = {};
@@ -77,8 +88,14 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.clearValueCount = 1;
 		beginInfo.pClearValues = &colorClearValue;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 		mPipeline->bind(commandBuffer);
-		mMesh->draw(commandBuffer);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &viewProjection);
+		for (auto instance : meshWrangler->getMeshInstances())
+		{
+			meshWrangler->bindModelDescriptor(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, instance);
+			instance->mMesh->draw(commandBuffer);
+		}
 		vkCmdEndRenderPass(commandBuffer);
 	}
 
@@ -89,12 +106,19 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 
 void GPUProcessRenderPass::acquireLongtermResources()
 {
-	// TODO: remove this test code
-	mMesh = std::make_unique<GPUMesh>("face.glb", mEngine);
-	mMesh->load();
-
 	// create RenderPass
 	createRenderPass();
+
+	// create pipeline
+	mPipeline = new GPUPipeline(mEngine, 
+		{ "passthrough_vert", "passthrough_frag" }, 
+		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
+		mRenderPass);
+}
+
+void GPUProcessRenderPass::acquireFrameResources()
+{
+	mPipeline->validate();
 
 	// create framebuffers for each possible ImageView
 	auto possibleImageViews = mPRImageView->getPossibleValues();
@@ -119,14 +143,22 @@ void GPUProcessRenderPass::acquireLongtermResources()
 		mFramebuffers.insert({ imageView, framebuffer });
 	}
 
-	// create pipeline
-	mPipeline = new GPUPipeline(mEngine, 
-		{ "passthrough_vert", "passthrough_frag" }, 
-		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
-		mRenderPass);
-
 	// set up resources that are passed out
 	mPRImageViewOut->setPossibleValues(mPRImageView->getPossibleValues());
+}
+
+void GPUProcessRenderPass::cleanupFrameResources()
+{
+	VkDevice device = mEngine->getDevice();
+
+	for (auto& framebuffer : mFramebuffers)
+	{
+		vkDestroyFramebuffer(device, framebuffer.second, nullptr);
+	}
+
+	mFramebuffers.clear();
+
+	mPipeline->invalidate();
 }
 
 bool GPUProcessRenderPass::createRenderPass()

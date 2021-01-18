@@ -21,10 +21,12 @@ public:
 	GPUProcessPresent* getPresentProcess();
 	const PassableResource<VkImageView>* getPRImageView();
 	const VkFormat* getImageFormatPTR();
+	bool shouldRebuild();
 
 	// virtual functions inherited from GPUProcess
 	virtual bool isOperationCommand();
-	virtual void acquireLongtermResources();
+	virtual void acquireFrameResources();
+	virtual void cleanupFrameResources();
 	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 private:
@@ -42,6 +44,7 @@ private:
 	void present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 	// member variables
+	bool mShouldRebuild = false;
 	VkSurfaceFormatKHR mSurfaceFormat;
 	VkSwapchainKHR mSwapchain;
 	uint32_t mCurrentImageIndex;
