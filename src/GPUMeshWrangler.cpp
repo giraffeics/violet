@@ -3,9 +3,8 @@
 #include "glm_includes.h"
 #include "GPUEngine.h"
 
-GPUMeshWrangler::GPUMeshWrangler(GPUEngine* engine)
+GPUMeshWrangler::GPUMeshWrangler()
 {
-	mEngine = engine;
 	mPRUniformBuffer = std::make_unique<GPUProcess::PassableResource<VkBuffer>>(this, &mUniformBuffer);
 }
 

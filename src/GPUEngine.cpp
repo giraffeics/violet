@@ -65,7 +65,8 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mTransferFence = createFence(0);
 
 	// create mesh wrangler
-	mMeshWrangler = std::make_unique<GPUMeshWrangler>(this);
+	mMeshWrangler = std::make_unique<GPUMeshWrangler>();
+	mMeshWrangler->setEngine(this);
 
 	// temporary test code for PassableResource for imageviews
 	mDependencyGraph = std::make_unique<GPUDependencyGraph>(this);

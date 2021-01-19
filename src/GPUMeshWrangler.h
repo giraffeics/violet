@@ -23,7 +23,7 @@ public:
 	static constexpr size_t maxMeshInstances = 1024;
 
 	// constructors and destructor
-	GPUMeshWrangler(GPUEngine* engine);
+	GPUMeshWrangler();
 	GPUMeshWrangler(GPUMeshWrangler& other) = delete;
 	GPUMeshWrangler(GPUMeshWrangler&& other) = delete;
 	GPUMeshWrangler& operator=(GPUMeshWrangler& other) = delete;
@@ -46,8 +46,6 @@ private:
 	bool createDescriptorPool();
 	bool createDescriptorSet();
 	bool createBuffers();
-
-	GPUEngine* mEngine;
 
 	// data used to assemble list of mesh instances for rendering
 	glm::mat4* mUniformBufferData = nullptr;
