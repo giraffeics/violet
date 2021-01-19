@@ -7,7 +7,7 @@
 GPUProcessSwapchain::GPUProcessSwapchain()
 {
 	mPRCurrentImageView = std::make_unique<PassableImageView>(this, &currentImageView);
-	mPresentProcess = std::make_unique<GPUProcessPresent>(this);
+	mPresentProcess = new GPUProcessPresent(this);
 }
 
 GPUProcessSwapchain::~GPUProcessSwapchain()
@@ -17,7 +17,7 @@ GPUProcessSwapchain::~GPUProcessSwapchain()
 
 GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
 {
-	return mPresentProcess.get();
+	return mPresentProcess;
 }
 
 const GPUProcess::PassableImageView* GPUProcessSwapchain::getPRImageView()

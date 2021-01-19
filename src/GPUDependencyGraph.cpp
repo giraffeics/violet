@@ -10,6 +10,11 @@ GPUDependencyGraph::GPUDependencyGraph(GPUEngine* engine)
 GPUDependencyGraph::~GPUDependencyGraph()
 {
 	cleanupEdges();
+
+	for (auto& entry : mProcessNodeIndices)
+	{
+		delete entry.first;
+	}
 }
 
 void GPUDependencyGraph::addProcess(GPUProcess* process)

@@ -48,7 +48,7 @@ private:
 	VkExtent2D mExtent;
 	VkSwapchainKHR mSwapchain;
 	uint32_t mCurrentImageIndex;
-	std::unique_ptr<GPUProcessPresent> mPresentProcess;
+	GPUProcessPresent* mPresentProcess;
 
 	// member variables used for dependency passing
 	VkImageView currentImageView;

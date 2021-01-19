@@ -65,35 +65,17 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	// create transfer fence
 	mTransferFence = createFence(0);
 
-	// create mesh wrangler
-	mMeshWrangler = std::make_unique<GPUMeshWrangler>();
-	mMeshWrangler->setEngine(this);
-
-	// temporary test code for PassableResource for imageviews
+	// create dependency graph
 	mDependencyGraph = std::make_unique<GPUDependencyGraph>(this);
 
+	// create mesh wrangler
+	mMeshWrangler = new GPUMeshWrangler;
+	addProcess(mMeshWrangler);
+
+	// create swapchain
 	mSwapchainProcess = new GPUProcessSwapchain;
-	mSwapchainProcess->setEngine(this);
-
-	mZBufferImage = new GPUImage(VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, 1);
-	mZBufferImage->setEngine(this);
-
-	mRenderPassProcess = new GPUProcessRenderPass;
-	mRenderPassProcess->setEngine(this);
-	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
-	((GPUProcessRenderPass*)mRenderPassProcess)->setZBufferViewPR(((GPUImage*)mZBufferImage)->getImageViewPR());
-	((GPUProcessRenderPass*)mRenderPassProcess)->setUniformBufferPR(mMeshWrangler->getPRUniformBuffer());
-
-	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
-	mPresentProcess->setEngine(this);
-	((GPUProcessPresent*)mPresentProcess)->setImageViewInPR(((GPUProcessRenderPass*)mRenderPassProcess)->getImageViewOutPR());
-
-	mDependencyGraph->addProcess(mSwapchainProcess);
-	mDependencyGraph->addProcess(mPresentProcess);
-	mDependencyGraph->addProcess(mRenderPassProcess);
-	mDependencyGraph->addProcess(mMeshWrangler.get());
-	mDependencyGraph->addProcess(mZBufferImage);
-	mDependencyGraph->build();
+	addProcess(mSwapchainProcess);
+	addProcess(mSwapchainProcess->getPresentProcess());
 }
 
 GPUEngine::~GPUEngine()
@@ -101,12 +83,6 @@ GPUEngine::~GPUEngine()
 	// explicitly delete unique pointers owning vulkan handles
 	// (destructor must be called while instance exists)
 	mDependencyGraph.reset();
-	mMeshWrangler.reset();
-
-	// delete processes
-	delete mRenderPassProcess;
-	delete mSwapchainProcess;
-	delete mZBufferImage;
 
 	// destroy command pools
 	vkDestroyCommandPool(mDevice, mGraphicsCommandPool, nullptr);
@@ -273,6 +249,17 @@ uint32_t GPUEngine::findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlag
 		}
 	if (memoryType == UINT32_MAX)
 		return UINT32_MAX;
+}
+
+void GPUEngine::addProcess(GPUProcess* process)
+{
+	process->setEngine(this);
+	mDependencyGraph->addProcess(process);
+}
+
+void GPUEngine::validateProcesses()
+{
+	mDependencyGraph->build();
 }
 
 void GPUEngine::renderFrame()

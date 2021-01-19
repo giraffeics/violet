@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include "GPUProcess.h"
+#include "GPUProcessSwapchain.h"
 #include "GPUDependencyGraph.h"
 #include "GPUMeshWrangler.h"
 
@@ -30,6 +31,10 @@ public:
 	bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory);
 	void transferToBuffer(VkBuffer destination, void* data, VkDeviceSize size, VkDeviceSize offset);
 	uint32_t findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags properties);
+	void addProcess(GPUProcess* process);
+	void validateProcesses();
+	GPUProcessSwapchain* getSwapchainProcess() { return mSwapchainProcess; }
+	GPUProcessPresent* getPresentProcess() { return mSwapchainProcess->getPresentProcess(); }
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
@@ -43,7 +48,7 @@ public:
 	VkSurfaceKHR getSurface() { return mSurface; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkDescriptorSetLayout getModelDescriptorLayout() { return mDescriptorLayoutModel; }
-	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler.get(); }
+	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler; }
 
 private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
@@ -73,13 +78,9 @@ private:
 	// GPUProcess objects;
 	// TODO: move these handles elsewhere, as the engine should
 	// not be responsible for deciding what GPUProcesses are used
-	GPUProcess* mZBufferImage;
-	GPUProcess* mRenderPassProcess;
-	VkImageView currentImageView;
-	GPUProcess* mSwapchainProcess;
-	GPUProcess* mPresentProcess;
+	GPUProcessSwapchain* mSwapchainProcess;
+	GPUMeshWrangler* mMeshWrangler;
 	std::unique_ptr<GPUDependencyGraph> mDependencyGraph;
-	std::unique_ptr<GPUMeshWrangler> mMeshWrangler;
 
 	// Vulkan objects owned by GPUEngine
 	VkInstance mInstance = VK_NULL_HANDLE;

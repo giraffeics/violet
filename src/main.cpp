@@ -5,6 +5,9 @@
 
 #include "GPUEngine.h"
 #include "GPUMeshWrangler.h"
+#include "GPUImage.h"
+#include "GPUProcessRenderPass.h"
+#include "GPUProcessSwapchain.h"
 #include "GPUWindowSystemGLFW.h"
 
 int main()
@@ -15,6 +18,26 @@ int main()
 
 	GPUEngine engine(processVector, &windowSystem, "VKWhatever", "Whatever Engine");
 	auto meshWrangler = engine.getMeshWrangler();
+
+	// set up GPUProcesses
+	{
+		auto swapchainProcess = engine.getSwapchainProcess();
+		auto presentProcess = engine.getPresentProcess();
+
+		auto zBufferImage = new GPUImage(VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, 1);
+
+		auto renderPassProcess = new GPUProcessRenderPass;
+		renderPassProcess->setImageViewPR(swapchainProcess->getPRImageView());
+		renderPassProcess->setZBufferViewPR(zBufferImage->getImageViewPR());
+		renderPassProcess->setUniformBufferPR(meshWrangler->getPRUniformBuffer());
+
+		presentProcess->setImageViewInPR(renderPassProcess->getImageViewOutPR());
+
+		engine.addProcess(zBufferImage);
+		engine.addProcess(renderPassProcess);
+
+		engine.validateProcesses();
+	}
 
 	GPUMesh faceMesh("face.glb", &engine);
 	faceMesh.load();
