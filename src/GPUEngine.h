@@ -31,6 +31,7 @@ public:
 	VkFence createFence(VkFenceCreateFlags flags);
 	bool createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory);
 	void transferToBuffer(VkBuffer destination, void* data, VkDeviceSize size, VkDeviceSize offset);
+	uint32_t findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags properties);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }

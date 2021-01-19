@@ -183,16 +183,7 @@ bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, V
 	// find a suitable memory type
 	VkMemoryRequirements memoryRequirements;
 	vkGetBufferMemoryRequirements(mDevice, buffer, &memoryRequirements);
-	VkPhysicalDeviceMemoryProperties memoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memoryProperties);
-
-	uint32_t memoryType = UINT32_MAX;
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
-		if ((memoryRequirements.memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & memoryFlags))
-		{
-			memoryType = i;
-			break;
-		}
+	uint32_t memoryType = findMemoryType(memoryRequirements.memoryTypeBits, memoryFlags);
 	if (memoryType == UINT32_MAX)
 		return false;
 
@@ -261,6 +252,21 @@ void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize 
 
 	vkFreeMemory(mDevice, stagingMemory, nullptr);
 	vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
+}
+
+uint32_t GPUEngine::findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memoryProperties);
+
+	uint32_t memoryType = UINT32_MAX;
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+		if ((memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties))
+		{
+			return i;
+		}
+	if (memoryType == UINT32_MAX)
+		return UINT32_MAX;
 }
 
 void GPUEngine::renderFrame()
