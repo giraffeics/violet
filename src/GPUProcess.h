@@ -10,6 +10,13 @@ class GPUEngine;
 class GPUProcess
 {
 public:
+	enum OperationType
+	{
+		OP_TYPE_COMMAND,
+		OP_TYPE_OTHER,
+		OP_TYPE_NOOP
+	};
+
 	// classes & structs scoped to GPUProcess
 	class PassableResourceBase
 	{
@@ -62,7 +69,7 @@ public:
 	virtual const char** getRequiredInstanceExtensions(uint32_t* count);
 	virtual const char** getRequiredDeviceExtensions(uint32_t* count);
 	virtual VkQueueFlags getNeededQueueType();
-	virtual bool isOperationCommand();
+	virtual OperationType getOperationType();
 	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
 	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();

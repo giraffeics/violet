@@ -35,9 +35,9 @@ bool GPUProcessSwapchain::shouldRebuild()
 	return mShouldRebuild;
 }
 
-bool GPUProcessSwapchain::isOperationCommand()
+GPUProcess::OperationType GPUProcessSwapchain::getOperationType()
 {
-	return false;
+	return OP_TYPE_OTHER;
 }
 
 void GPUProcessSwapchain::acquireFrameResources()
@@ -230,9 +230,9 @@ void GPUProcessPresent::setImageViewInPR(const PassableResource<VkImageView>* im
 	mPRImageViewIn = imageViewInPR;
 }
 
-bool GPUProcessPresent::isOperationCommand()
+GPUProcess::OperationType GPUProcessPresent::getOperationType()
 {
-	return false;
+	return OP_TYPE_OTHER;
 }
 
 void GPUProcessPresent::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)

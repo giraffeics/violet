@@ -24,7 +24,7 @@ public:
 	bool shouldRebuild();
 
 	// virtual functions inherited from GPUProcess
-	virtual bool isOperationCommand();
+	virtual OperationType getOperationType();
 	virtual void acquireFrameResources();
 	virtual void cleanupFrameResources();
 	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
@@ -63,7 +63,7 @@ public:
 	void setImageViewInPR(const PassableResource<VkImageView>* imageViewInPR);
 
 	// virtual functions inherited from GPUProcess
-	virtual bool isOperationCommand();
+	virtual OperationType getOperationType();
 	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 

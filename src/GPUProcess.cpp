@@ -27,9 +27,9 @@ VkQueueFlags GPUProcess::getNeededQueueType()
 	return 0;
 }
 
-bool GPUProcess::isOperationCommand()
+GPUProcess::OperationType GPUProcess::getOperationType()
 {
-	return true;
+	return OP_TYPE_COMMAND;
 }
 
 VkCommandBuffer GPUProcess::performOperation(VkCommandPool commandPool)

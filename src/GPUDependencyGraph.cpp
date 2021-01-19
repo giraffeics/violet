@@ -34,13 +34,16 @@ void GPUDependencyGraph::build()
 		{
 			GPUProcess* parentPTR = dependency.resource->getSourceProcess();
 			size_t parentIndex = mProcessNodeIndices.find(parentPTR)->second;
+			VkSemaphore semaphore = VK_NULL_HANDLE;
+			if (parentPTR->getOperationType() != GPUProcess::OP_TYPE_NOOP)
+				semaphore = mEngine->createSemaphore();
 			// TODO: validate parent index
 			size_t edgeIndex = mEdges.size();
 			mEdges.push_back({
 				parentIndex,
 				i,
 				dependency.pipelineStage,
-				mEngine->createSemaphore()	// each edge owns one VkSemaphore
+				semaphore	// each edge owns one VkSemaphore
 				});
 			node.backEdgeIndices.push_back(edgeIndex);
 			mNodes[parentIndex].forwardEdgeIndices.push_back(edgeIndex);
@@ -58,14 +61,18 @@ void GPUDependencyGraph::build()
 		for (auto& edgeIndex : node.forwardEdgeIndices)
 		{
 			auto& edge = mEdges[edgeIndex];
-			node.signalSemaphores.push_back(edge.signalSemaphore);
+			if (edge.signalSemaphore != VK_NULL_HANDLE)
+				node.signalSemaphores.push_back(edge.signalSemaphore);
 		}
 
 		for (auto& edgeIndex : node.backEdgeIndices)
 		{
 			auto& edge = mEdges[edgeIndex];
-			node.waitSemaphores.push_back(edge.signalSemaphore);
-			node.waitStages.push_back(edge.pipelineStage);
+			if (edge.signalSemaphore != VK_NULL_HANDLE)
+			{
+				node.waitSemaphores.push_back(edge.signalSemaphore);
+				node.waitStages.push_back(edge.pipelineStage);
+			}
 		}
 	}
 
@@ -149,7 +156,7 @@ void GPUDependencyGraph::executeSequence()
 		for (size_t i : group.nodeIndices)
 		{
 			auto& node = mNodes[i];
-			if (node.process->isOperationCommand())
+			if (node.process->getOperationType() == GPUProcess::OP_TYPE_COMMAND)
 				numSubmits++;
 		}
 
@@ -161,31 +168,36 @@ void GPUDependencyGraph::executeSequence()
 		for (size_t i : group.nodeIndices)
 		{
 			auto& node = mNodes[i];
-			if (node.process->isOperationCommand())
+			switch(node.process->getOperationType())
 			{
-				commandBuffers[currentSubmit] = node.process->performOperation(mEngine->getGraphicsPool());
-				createdCommandBuffers.push_back(commandBuffers[currentSubmit]);
+			case GPUProcess::OP_TYPE_COMMAND:
+				{
+					commandBuffers[currentSubmit] = node.process->performOperation(mEngine->getGraphicsPool());
+					createdCommandBuffers.push_back(commandBuffers[currentSubmit]);
 
-				auto& submitInfo = submitInfos[currentSubmit];
-				submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-				submitInfo.pNext = nullptr;
-				submitInfo.waitSemaphoreCount = node.waitSemaphores.size();
-				submitInfo.pWaitSemaphores = node.waitSemaphores.data();
-				submitInfo.pWaitDstStageMask = node.waitStages.data();
-				submitInfo.commandBufferCount = 1;
-				submitInfo.pCommandBuffers = &commandBuffers[currentSubmit];
-				submitInfo.signalSemaphoreCount = node.signalSemaphores.size();
-				submitInfo.pSignalSemaphores = node.signalSemaphores.data();
+					auto& submitInfo = submitInfos[currentSubmit];
+					submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+					submitInfo.pNext = nullptr;
+					submitInfo.waitSemaphoreCount = node.waitSemaphores.size();
+					submitInfo.pWaitSemaphores = node.waitSemaphores.data();
+					submitInfo.pWaitDstStageMask = node.waitStages.data();
+					submitInfo.commandBufferCount = 1;
+					submitInfo.pCommandBuffers = &commandBuffers[currentSubmit];
+					submitInfo.signalSemaphoreCount = node.signalSemaphores.size();
+					submitInfo.pSignalSemaphores = node.signalSemaphores.data();
 
-				currentSubmit++;
-			}
-			else
-			{
-				VkSemaphore signalSemaphore = VK_NULL_HANDLE;
-				if (node.signalSemaphores.size() > 0)
-					signalSemaphore = node.signalSemaphores[0];
+					currentSubmit++;
+					break;
+				}
+			case GPUProcess::OP_TYPE_OTHER:
+				{
+					VkSemaphore signalSemaphore = VK_NULL_HANDLE;
+					if (node.signalSemaphores.size() > 0)
+						signalSemaphore = node.signalSemaphores[0];
 
-				node.process->performOperation(node.waitSemaphores, VK_NULL_HANDLE, signalSemaphore);
+					node.process->performOperation(node.waitSemaphores, VK_NULL_HANDLE, signalSemaphore);
+					break;
+				}
 			}
 		}
 
