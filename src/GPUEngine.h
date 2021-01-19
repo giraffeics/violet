@@ -12,8 +12,6 @@
 #include "GPUDependencyGraph.h"
 #include "GPUMeshWrangler.h"
 
-class GPUPipeline;
-
 class GPUEngine
 {
 public:
@@ -98,7 +96,6 @@ private:
 	VkRenderPass mRenderPass = VK_NULL_HANDLE;
 	VkFence mTransferFence = VK_NULL_HANDLE;
 	VkDescriptorSetLayout mDescriptorLayoutModel = VK_NULL_HANDLE;
-	GPUPipeline* mPipeline = nullptr;
 };
 
 #endif
