@@ -6,7 +6,7 @@
 
 GPUProcessSwapchain::GPUProcessSwapchain()
 {
-	mPRCurrentImageView = std::make_unique<PassableResource<VkImageView>>(this, &currentImageView);
+	mPRCurrentImageView = std::make_unique<PassableImageView>(this, &currentImageView);
 	mPresentProcess = std::make_unique<GPUProcessPresent>(this);
 }
 
@@ -20,14 +20,9 @@ GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
 	return mPresentProcess.get();
 }
 
-const GPUProcess::PassableResource<VkImageView>* GPUProcessSwapchain::getPRImageView()
+const GPUProcess::PassableImageView* GPUProcessSwapchain::getPRImageView()
 {
 	return mPRCurrentImageView.get();
-}
-
-const VkFormat* GPUProcessSwapchain::getImageFormatPTR()
-{
-	return &(mSurfaceFormat.format);
 }
 
 bool GPUProcessSwapchain::shouldRebuild()
@@ -48,6 +43,9 @@ void GPUProcessSwapchain::acquireFrameResources()
 		return;
 	if (!createFrames())
 		return;
+
+	mPRCurrentImageView->setFormat(mSurfaceFormat.format);
+	mPRCurrentImageView->setExtent(mExtent);
 
 	mShouldRebuild = false;
 }
@@ -70,7 +68,7 @@ bool GPUProcessSwapchain::createSwapchain()
 	VkPhysicalDevice physicalDevice = mEngine->getPhysicalDevice();
 	VkDevice device = mEngine->getDevice();
 	VkSurfaceKHR surface = mEngine->getSurface();
-	VkExtent2D extent = mEngine->getSurfaceExtent();
+	mExtent = mEngine->getSurfaceExtent();
 	uint32_t graphicsFamily = mEngine->getGraphicsQueueFamily();
 	uint32_t presentFamily = mEngine->getPresentQueueFamily();
 
@@ -83,7 +81,7 @@ bool GPUProcessSwapchain::createSwapchain()
 	createInfo.minImageCount = 2;
 	createInfo.imageFormat = mSurfaceFormat.format;
 	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
-	createInfo.imageExtent = extent;
+	createInfo.imageExtent = mExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 

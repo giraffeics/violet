@@ -57,6 +57,33 @@ public:
 		std::vector<T> mPossibleValues = {};
 	};
 
+	class PassableImageView : public PassableResource<VkImageView>
+	{
+	public:
+		PassableImageView(GPUProcess* process, VkImageView* handle) 
+			: PassableResource<VkImageView>(process, handle) {}
+
+		void setExtent(VkExtent2D& extent){
+			mExtent = extent;
+		}
+
+		void setFormat(VkFormat format) {
+			mFormat = format;
+		}
+
+		VkExtent2D getExtent() const {
+			return mExtent;
+		}
+
+		VkFormat getFormat() const {
+			return mFormat;
+		}
+
+	private:
+		VkExtent2D mExtent{};
+		VkFormat mFormat;
+	};
+
 	typedef struct PRDependency
 	{
 		const PassableResourceBase* resource;

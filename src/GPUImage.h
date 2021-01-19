@@ -17,7 +17,7 @@ public:
 
 	// functions for setting up passable resource relationships
 	const VkFormat* getFormatPTR() { return &mFormat; }
-	const PassableResource<VkImageView>* getImageViewPR() { return mPRImageView.get(); }
+	const PassableImageView* getImageViewPR() { return mPRImageView.get(); }
 
 	// virtual functions inherited from GPUProcess
 	virtual void acquireLongtermResources();
@@ -33,7 +33,7 @@ private:
 	std::vector<VkFormat> getFormatCandidates(VkFormatFeatureFlags requiredFeatures);
 
 	// passable resources
-	std::unique_ptr<PassableResource<VkImageView>> mPRImageView;
+	std::unique_ptr<PassableImageView> mPRImageView;
 
 	// private member variables
 	size_t mScreenSizeMultiplier = 1;

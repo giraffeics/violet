@@ -17,29 +17,19 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 	delete mPipeline;
 }
 
-void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* prImageView)
+void GPUProcessRenderPass::setImageViewPR(const PassableImageView* prImageView)
 {
 	mPRImageView = prImageView;
 }
 
-void GPUProcessRenderPass::setZBufferViewPR(const PassableResource<VkImageView>* prZBufferView)
+void GPUProcessRenderPass::setZBufferViewPR(const PassableImageView* prZBufferView)
 {
 	mPRZBufferView = prZBufferView;
-}
-
-void GPUProcessRenderPass::setZBufferFormatPTR(const VkFormat* format)
-{
-	mZBufferFormatPTR = format;
 }
 
 void GPUProcessRenderPass::setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer)
 {
 	mPRUniformBuffer = prUniformBuffer;
-}
-
-void GPUProcessRenderPass::setImageFormatPTR(const VkFormat* format)
-{
-	mImageFormatPTR = format;
 }
 
 const GPUProcess::PassableResource<VkImageView>* GPUProcessRenderPass::getImageViewOutPR()
@@ -138,7 +128,7 @@ void GPUProcessRenderPass::acquireFrameResources()
 	for (auto imageView : possibleImageViews)
 	{
 		VkFramebuffer framebuffer;
-		VkExtent2D extent = mEngine->getSurfaceExtent();
+		VkExtent2D extent = mPRImageView->getExtent();
 		VkImageView attachments[2] = {
 			imageView,
 			mPRZBufferView->getPossibleValues()[0]
@@ -182,7 +172,7 @@ bool GPUProcessRenderPass::createRenderPass()
 	// create render pass
 	VkAttachmentDescription attachmentDescriptions[2];
 	attachmentDescriptions[0].flags = 0;
-	attachmentDescriptions[0].format = *mImageFormatPTR;
+	attachmentDescriptions[0].format = mPRImageView->getFormat();
 	attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -192,7 +182,7 @@ bool GPUProcessRenderPass::createRenderPass()
 	attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	attachmentDescriptions[1].flags = 0;
-	attachmentDescriptions[1].format = *mZBufferFormatPTR;
+	attachmentDescriptions[1].format = mPRZBufferView->getFormat();
 	attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;
 	attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

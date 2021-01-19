@@ -80,10 +80,8 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 
 	mRenderPassProcess = new GPUProcessRenderPass;
 	mRenderPassProcess->setEngine(this);
-	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormatPTR(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setZBufferViewPR(((GPUImage*)mZBufferImage)->getImageViewPR());
-	((GPUProcessRenderPass*)mRenderPassProcess)->setZBufferFormatPTR(((GPUImage*)mZBufferImage)->getFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setUniformBufferPR(mMeshWrangler->getPRUniformBuffer());
 
 	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();

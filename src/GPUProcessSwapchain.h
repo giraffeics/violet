@@ -19,8 +19,7 @@ public:
 
 	// public getters
 	GPUProcessPresent* getPresentProcess();
-	const PassableResource<VkImageView>* getPRImageView();
-	const VkFormat* getImageFormatPTR();
+	const PassableImageView* getPRImageView();
 	bool shouldRebuild();
 
 	// virtual functions inherited from GPUProcess
@@ -46,13 +45,14 @@ private:
 	// member variables
 	bool mShouldRebuild = false;
 	VkSurfaceFormatKHR mSurfaceFormat;
+	VkExtent2D mExtent;
 	VkSwapchainKHR mSwapchain;
 	uint32_t mCurrentImageIndex;
 	std::unique_ptr<GPUProcessPresent> mPresentProcess;
 
 	// member variables used for dependency passing
 	VkImageView currentImageView;
-	std::unique_ptr<GPUProcess::PassableResource<VkImageView>> mPRCurrentImageView;
+	std::unique_ptr<GPUProcess::PassableImageView> mPRCurrentImageView;
 };
 
 class GPUProcessPresent : public GPUProcess

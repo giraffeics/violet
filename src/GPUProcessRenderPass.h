@@ -21,11 +21,9 @@ public:
 	~GPUProcessRenderPass();
 
 	// functions for setting up passable resource relationships
-	void setImageViewPR(const PassableResource<VkImageView>* prImageView);
+	void setImageViewPR(const PassableImageView* prImageView);
 	void setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer);
-	void setImageFormatPTR(const VkFormat* format);
-	void setZBufferViewPR(const PassableResource<VkImageView>* prZBufferView);
-	void setZBufferFormatPTR(const VkFormat* format);
+	void setZBufferViewPR(const PassableImageView* prZBufferView);
 	const PassableResource<VkImageView>* getImageViewOutPR();
 
 	// virtual functions inherited from GPUProcess
@@ -39,13 +37,11 @@ public:
 private:
 	bool createRenderPass();
 
-	const PassableResource<VkImageView>* mPRImageView = nullptr;
-	const PassableResource<VkImageView>* mPRZBufferView = nullptr;
+	const PassableImageView* mPRImageView = nullptr;
+	const PassableImageView* mPRZBufferView = nullptr;
 	const PassableResource<VkBuffer>* mPRUniformBuffer = nullptr;
 	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
-	const VkFormat* mImageFormatPTR;
-	const VkFormat* mZBufferFormatPTR;
 	VkRenderPass mRenderPass;
 	GPUPipeline* mPipeline;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;

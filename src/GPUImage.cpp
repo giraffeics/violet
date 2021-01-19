@@ -11,7 +11,7 @@ GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usag
 	mScreenSizeMultiplier = screenSizeMultiplier;
 	mUseScreenSize = true;
 
-	mPRImageView = std::make_unique<PassableResource<VkImageView>>(this, &mImageView);
+	mPRImageView = std::make_unique<PassableImageView>(this, &mImageView);
 }
 
 GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t width, size_t height)
@@ -24,7 +24,7 @@ GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usag
 	mHeight = height;
 	mUseScreenSize = false;
 
-	mPRImageView = std::make_unique<PassableResource<VkImageView>>(this, &mImageView);
+	mPRImageView = std::make_unique<PassableImageView>(this, &mImageView);
 }
 
 GPUImage::~GPUImage()
@@ -134,8 +134,11 @@ void GPUImage::allocateImage()
 		vkCreateImageView(device, &createInfo, nullptr, &mImageView);
 	}
 
-	// set passable resource possible values
+	// set passable resource values
+	VkExtent2D extent = { mWidth, mHeight };
 	mPRImageView->setPossibleValues({mImageView});
+	mPRImageView->setExtent(extent);
+	mPRImageView->setFormat(mFormat);
 }
 
 void GPUImage::chooseImageFormat()
