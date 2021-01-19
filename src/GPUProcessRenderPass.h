@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "GPUEngine.h"
+#include "GPUPipeline.h"
 #include "GPUMesh.h"
 
 class GPUProcessRenderPass : public GPUProcess
