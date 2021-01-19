@@ -76,6 +76,7 @@ private:
 	// GPUProcess objects;
 	// TODO: move these handles elsewhere, as the engine should
 	// not be responsible for deciding what GPUProcesses are used
+	GPUProcess* mZBufferImage;
 	GPUProcess* mRenderPassProcess;
 	VkImageView currentImageView;
 	GPUProcess* mSwapchainProcess;

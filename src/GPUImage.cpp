@@ -52,6 +52,11 @@ void GPUImage::cleanupFrameResources()
 		freeImage();
 }
 
+GPUProcess::OperationType GPUImage::getOperationType()
+{
+	return OP_TYPE_NOOP;
+}
+
 void GPUImage::allocateImage()
 {
 	if (mUseScreenSize)
@@ -63,19 +68,12 @@ void GPUImage::allocateImage()
 
 	VkDevice device = mEngine->getDevice();
 
-	// choose initial layout and aspect flags
-	VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	// choose aspect flags
 	VkImageAspectFlags aspectMask = 0;
 	if (mUsage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-	{
-		layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 		aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-	}
 	if (mUsage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-	{
-		layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	}
 
 	// create image
 	{
@@ -87,13 +85,14 @@ void GPUImage::allocateImage()
 		createInfo.format = mFormat;
 		createInfo.extent.width = mWidth;
 		createInfo.extent.height = mHeight;
+		createInfo.extent.depth = 1;
 		createInfo.mipLevels = 1;
 		createInfo.arrayLayers = 1;
 		createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		createInfo.tiling = mImageTiling;
 		createInfo.usage = mUsage;
 		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		createInfo.initialLayout = layout;
+		createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		vkCreateImage(device, &createInfo, nullptr, &mImage);
 	}
@@ -107,6 +106,10 @@ void GPUImage::allocateImage()
 		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocateInfo.pNext = nullptr;
 		allocateInfo.memoryTypeIndex = mEngine->findMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		allocateInfo.allocationSize = memoryRequirements.size;
+		vkAllocateMemory(device, &allocateInfo, nullptr, &mImageMemory);
+
+		vkBindImageMemory(device, mImage, mImageMemory, 0);
 	}
 
 	// create image view

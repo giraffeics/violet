@@ -170,6 +170,16 @@ void GPUPipeline::buildPipeline()
 	colorBlendInfo.attachmentCount = 1;
 	colorBlendInfo.pAttachments = &colorBlendAttachmentInfo;
 
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
+	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilInfo.pNext = nullptr;
+	depthStencilInfo.flags = 0;
+	depthStencilInfo.depthTestEnable = VK_TRUE;
+	depthStencilInfo.depthWriteEnable = VK_TRUE;
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilInfo.stencilTestEnable = VK_FALSE;
+
 	// create graphics pipeline
 	VkGraphicsPipelineCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -183,7 +193,7 @@ void GPUPipeline::buildPipeline()
 	createInfo.pViewportState = &viewportInfo;
 	createInfo.pRasterizationState = &rasterizationInfo;
 	createInfo.pMultisampleState = &multisampleInfo;
-	createInfo.pDepthStencilState = nullptr;
+	createInfo.pDepthStencilState = &depthStencilInfo;
 	createInfo.pColorBlendState = &colorBlendInfo;
 	createInfo.pDynamicState = nullptr;
 	createInfo.layout = mPipelineLayout;

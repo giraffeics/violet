@@ -22,6 +22,16 @@ void GPUProcessRenderPass::setImageViewPR(const PassableResource<VkImageView>* p
 	mPRImageView = prImageView;
 }
 
+void GPUProcessRenderPass::setZBufferViewPR(const PassableResource<VkImageView>* prZBufferView)
+{
+	mPRZBufferView = prZBufferView;
+}
+
+void GPUProcessRenderPass::setZBufferFormatPTR(const VkFormat* format)
+{
+	mZBufferFormatPTR = format;
+}
+
 void GPUProcessRenderPass::setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer)
 {
 	mPRUniformBuffer = prUniformBuffer;
@@ -41,7 +51,8 @@ std::vector<GPUProcess::PRDependency>  GPUProcessRenderPass::getPRDependencies()
 {
 	return std::vector<PRDependency>({ 
 		{mPRImageView, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-		{mPRUniformBuffer, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT}
+		{mPRUniformBuffer, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT},
+		{mPRZBufferView, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT}
 	});
 }
 
@@ -76,7 +87,9 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		auto extent = mEngine->getSurfaceExtent();
 		glm::mat4 viewProjection = glm::perspective(45.0f, ((float)extent.width / (float)extent.height), 0.01f, 100.0f) * glm::translate(glm::identity<glm::mat4>(), tvec);
 
-		VkClearValue colorClearValue = { 0.8f, 0.1f, 0.3f, 1.0f };
+		VkClearValue clearValues[2];
+		clearValues[0].color = { 0.8f, 0.1f, 0.3f, 1.0f };
+		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		VkRenderPassBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -85,8 +98,8 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.framebuffer = mFramebuffers.find(mCurrentImageView)->second;
 		beginInfo.renderArea.offset = { 0, 0 };
 		beginInfo.renderArea.extent = mEngine->getSurfaceExtent();
-		beginInfo.clearValueCount = 1;
-		beginInfo.pClearValues = &colorClearValue;
+		beginInfo.clearValueCount = 2;
+		beginInfo.pClearValues = clearValues;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		mPipeline->bind(commandBuffer);
@@ -122,19 +135,22 @@ void GPUProcessRenderPass::acquireFrameResources()
 
 	// create framebuffers for each possible ImageView
 	auto possibleImageViews = mPRImageView->getPossibleValues();
-	for (auto imageViewUINT : possibleImageViews)
+	for (auto imageView : possibleImageViews)
 	{
 		VkFramebuffer framebuffer;
 		VkExtent2D extent = mEngine->getSurfaceExtent();
-		VkImageView imageView = (VkImageView)imageViewUINT;
+		VkImageView attachments[2] = {
+			imageView,
+			mPRZBufferView->getPossibleValues()[0]
+		};
 
 		VkFramebufferCreateInfo framebufferCreateInfo = {};
 		framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferCreateInfo.pNext = nullptr;
 		framebufferCreateInfo.flags = 0;
 		framebufferCreateInfo.renderPass = mRenderPass;
-		framebufferCreateInfo.attachmentCount = 1;
-		framebufferCreateInfo.pAttachments = &imageView;
+		framebufferCreateInfo.attachmentCount = 2;
+		framebufferCreateInfo.pAttachments = attachments;
 		framebufferCreateInfo.width = extent.width;
 		framebufferCreateInfo.height = extent.height;
 		framebufferCreateInfo.layers = 1;
@@ -164,32 +180,47 @@ void GPUProcessRenderPass::cleanupFrameResources()
 bool GPUProcessRenderPass::createRenderPass()
 {
 	// create render pass
-	VkAttachmentDescription attachmentDescription = {};
-	attachmentDescription.flags = 0;
-	attachmentDescription.format = *mImageFormatPTR;
-	attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	VkAttachmentDescription attachmentDescriptions[2];
+	attachmentDescriptions[0].flags = 0;
+	attachmentDescriptions[0].format = *mImageFormatPTR;
+	attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	attachmentDescriptions[1].flags = 0;
+	attachmentDescriptions[1].format = *mZBufferFormatPTR;
+	attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachmentDescriptions[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentReference colorAttachmentReference = {};
 	colorAttachmentReference.attachment = 0;
 	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthStencilAttachmentReference = {};
+	depthStencilAttachmentReference.attachment = 1;
+	depthStencilAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpassDescription = {};
 	subpassDescription.flags = 0;
 	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpassDescription.colorAttachmentCount = 1;
 	subpassDescription.pColorAttachments = &colorAttachmentReference;
+	subpassDescription.pDepthStencilAttachment = &depthStencilAttachmentReference;
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.pNext = nullptr;
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments = &attachmentDescription;
+	renderPassCreateInfo.attachmentCount = 2;
+	renderPassCreateInfo.pAttachments = attachmentDescriptions;
 	renderPassCreateInfo.subpassCount = 1;
 	renderPassCreateInfo.pSubpasses = &subpassDescription;
 	renderPassCreateInfo.dependencyCount = 0;

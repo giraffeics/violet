@@ -23,6 +23,7 @@ public:
 	virtual void acquireLongtermResources();
 	virtual void acquireFrameResources();
 	virtual void cleanupFrameResources();
+	virtual OperationType getOperationType();
 
 private:
 	// private member functions

@@ -23,6 +23,8 @@ public:
 	void setImageViewPR(const PassableResource<VkImageView>* prImageView);
 	void setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer);
 	void setImageFormatPTR(const VkFormat* format);
+	void setZBufferViewPR(const PassableResource<VkImageView>* prZBufferView);
+	void setZBufferFormatPTR(const VkFormat* format);
 	const PassableResource<VkImageView>* getImageViewOutPR();
 
 	// virtual functions inherited from GPUProcess
@@ -37,10 +39,12 @@ private:
 	bool createRenderPass();
 
 	const PassableResource<VkImageView>* mPRImageView = nullptr;
+	const PassableResource<VkImageView>* mPRZBufferView = nullptr;
 	const PassableResource<VkBuffer>* mPRUniformBuffer = nullptr;
 	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
 	const VkFormat* mImageFormatPTR;
+	const VkFormat* mZBufferFormatPTR;
 	VkRenderPass mRenderPass;
 	GPUPipeline* mPipeline;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;

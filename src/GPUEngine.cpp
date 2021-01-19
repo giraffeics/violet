@@ -5,6 +5,7 @@
 
 #include "GPUProcessRenderPass.h"
 #include "GPUProcessSwapchain.h"
+#include "GPUImage.h"
 
 #ifdef NDEBUG
 	std::vector<const char*> GPUEngine::validationLayers;
@@ -74,10 +75,15 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mSwapchainProcess = new GPUProcessSwapchain;
 	mSwapchainProcess->setEngine(this);
 
+	mZBufferImage = new GPUImage(VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, 1);
+	mZBufferImage->setEngine(this);
+
 	mRenderPassProcess = new GPUProcessRenderPass;
 	mRenderPassProcess->setEngine(this);
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageFormatPTR(((GPUProcessSwapchain*)mSwapchainProcess)->getImageFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setImageViewPR(((GPUProcessSwapchain*)mSwapchainProcess)->getPRImageView());
+	((GPUProcessRenderPass*)mRenderPassProcess)->setZBufferViewPR(((GPUImage*)mZBufferImage)->getImageViewPR());
+	((GPUProcessRenderPass*)mRenderPassProcess)->setZBufferFormatPTR(((GPUImage*)mZBufferImage)->getFormatPTR());
 	((GPUProcessRenderPass*)mRenderPassProcess)->setUniformBufferPR(mMeshWrangler->getPRUniformBuffer());
 
 	mPresentProcess = ((GPUProcessSwapchain*)mSwapchainProcess)->getPresentProcess();
@@ -88,6 +94,7 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	mDependencyGraph->addProcess(mPresentProcess);
 	mDependencyGraph->addProcess(mRenderPassProcess);
 	mDependencyGraph->addProcess(mMeshWrangler.get());
+	mDependencyGraph->addProcess(mZBufferImage);
 	mDependencyGraph->build();
 }
 
@@ -101,6 +108,7 @@ GPUEngine::~GPUEngine()
 	// delete processes
 	delete mRenderPassProcess;
 	delete mSwapchainProcess;
+	delete mZBufferImage;
 
 	// destroy command pools
 	vkDestroyCommandPool(mDevice, mGraphicsCommandPool, nullptr);
