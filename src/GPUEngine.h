@@ -42,7 +42,6 @@ public:
 	VkQueue getGraphicsQueue() { return mGraphicsQueue; }
 	VkSurfaceKHR getSurface() { return mSurface; }
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
-	VkRenderPass getRenderPass() { return mRenderPass; }
 	VkDescriptorSetLayout getModelDescriptorLayout() { return mDescriptorLayoutModel; }
 	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler.get(); }
 
@@ -93,7 +92,6 @@ private:
 	VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
 	VkSurfaceKHR mSurface = VK_NULL_HANDLE;
 	VkExtent2D mSurfaceExtent;
-	VkRenderPass mRenderPass = VK_NULL_HANDLE;
 	VkFence mTransferFence = VK_NULL_HANDLE;
 	VkDescriptorSetLayout mDescriptorLayoutModel = VK_NULL_HANDLE;
 };
