@@ -16,7 +16,7 @@ target_link_libraries(vulkan_neat INTERFACE ${Vulkan_LIBRARIES})
 target_include_directories(vulkan_neat INTERFACE ${Vulkan_INCLUDE_DIRS})
 
 # SET UP GLFW LIBRARY
-option(BUILD_SHARED_LIBS off)
+set(BUILD_SHARED_LIBS off)
 add_subdirectory("glfw")
 include_directories("glfw/include")
 
@@ -25,5 +25,6 @@ add_subdirectory("glm")
 include_directories("glm")
 
 # SET UP ASSIMP LIBRARY
+set(ASSIMP_BUILD_TESTS OFF)
 add_subdirectory("assimp")
 include_directories("assimp/include")
