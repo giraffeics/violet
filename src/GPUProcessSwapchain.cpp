@@ -4,6 +4,8 @@
 
 // GPUProcessSwapchain implementation
 
+
+
 GPUProcessSwapchain::GPUProcessSwapchain()
 {
 	mPRCurrentImageView = std::make_unique<PassableImageView>(this, &currentImageView);
@@ -202,7 +204,7 @@ bool GPUProcessSwapchain::chooseSurfaceFormat()
 
 bool GPUProcessSwapchain::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
-	VkResult result = vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, std::numeric_limits<uint64_t>::max(), semaphore, fence, &mCurrentImageIndex);
+	VkResult result = vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, imageTimeout, semaphore, fence, &mCurrentImageIndex);
 	currentImageView = mFrames[mCurrentImageIndex].imageView;
 
 	if (result == VK_SUCCESS)

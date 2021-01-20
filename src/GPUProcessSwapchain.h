@@ -38,6 +38,9 @@ private:
 	};
 	std::vector<Frame> mFrames;
 
+	// timeout in ns for acquiring images
+	static constexpr uint32_t imageTimeout = 100000000;
+
 	// private member functions
 	bool chooseSurfaceFormat();
 	bool createSwapchain();
