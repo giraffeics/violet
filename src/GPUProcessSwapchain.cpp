@@ -71,6 +71,13 @@ bool GPUProcessSwapchain::createSwapchain()
 	mExtent = mEngine->getSurfaceExtent();
 	uint32_t graphicsFamily = mEngine->getGraphicsQueueFamily();
 	uint32_t presentFamily = mEngine->getPresentQueueFamily();
+	
+	// find minimum image count
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
+	uint32_t minImageCount = 2;
+	if(surfaceCapabilities.minImageCount > 2)
+		minImageCount = surfaceCapabilities.minImageCount;
 
 	// create swapchain
 	VkSwapchainCreateInfoKHR createInfo = {};
@@ -78,7 +85,7 @@ bool GPUProcessSwapchain::createSwapchain()
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
 	createInfo.surface = surface;
-	createInfo.minImageCount = 2;
+	createInfo.minImageCount = minImageCount;
 	createInfo.imageFormat = mSurfaceFormat.format;
 	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
 	createInfo.imageExtent = mExtent;
