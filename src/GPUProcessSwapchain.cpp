@@ -4,6 +4,8 @@
 
 // GPUProcessSwapchain implementation
 
+
+
 GPUProcessSwapchain::GPUProcessSwapchain()
 {
 	mPRCurrentImageView = std::make_unique<PassableImageView>(this, &currentImageView);
@@ -71,6 +73,13 @@ bool GPUProcessSwapchain::createSwapchain()
 	mExtent = mEngine->getSurfaceExtent();
 	uint32_t graphicsFamily = mEngine->getGraphicsQueueFamily();
 	uint32_t presentFamily = mEngine->getPresentQueueFamily();
+	
+	// find minimum image count
+	VkSurfaceCapabilitiesKHR surfaceCapabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities);
+	uint32_t minImageCount = 2;
+	if(surfaceCapabilities.minImageCount > 2)
+		minImageCount = surfaceCapabilities.minImageCount;
 
 	// create swapchain
 	VkSwapchainCreateInfoKHR createInfo = {};
@@ -78,7 +87,7 @@ bool GPUProcessSwapchain::createSwapchain()
 	createInfo.pNext = nullptr;
 	createInfo.flags = 0;
 	createInfo.surface = surface;
-	createInfo.minImageCount = 2;
+	createInfo.minImageCount = minImageCount;
 	createInfo.imageFormat = mSurfaceFormat.format;
 	createInfo.imageColorSpace = mSurfaceFormat.colorSpace;
 	createInfo.imageExtent = mExtent;
@@ -193,16 +202,23 @@ bool GPUProcessSwapchain::chooseSurfaceFormat()
 	return true;
 }
 
-void GPUProcessSwapchain::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
+bool GPUProcessSwapchain::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
-	VkResult result = vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, std::numeric_limits<uint64_t>::max(), semaphore, fence, &mCurrentImageIndex);
+	VkResult result = vkAcquireNextImageKHR(mEngine->getDevice(), mSwapchain, imageTimeout, semaphore, fence, &mCurrentImageIndex);
 	currentImageView = mFrames[mCurrentImageIndex].imageView;
 
-	if (result != VK_SUCCESS)
+	if (result == VK_SUCCESS)
+		return true;
+	else
 		mShouldRebuild = true;
+
+	if (result != VK_SUBOPTIMAL_KHR)
+		return false;
+
+	return true;
 }
 
-void GPUProcessSwapchain::present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
+bool GPUProcessSwapchain::present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -213,7 +229,9 @@ void GPUProcessSwapchain::present(std::vector<VkSemaphore> waitSemaphores, VkFen
 	presentInfo.pSwapchains = &mSwapchain;
 	presentInfo.pImageIndices = &mCurrentImageIndex;
 	presentInfo.pResults = nullptr;
-	vkQueuePresentKHR(mEngine->getPresentQueue(), &presentInfo);
+
+	VkResult result = vkQueuePresentKHR(mEngine->getPresentQueue(), &presentInfo);
+	return (result == VK_SUCCESS);
 }
 
 // GPUProcessPresent implementation
@@ -233,9 +251,9 @@ GPUProcess::OperationType GPUProcessPresent::getOperationType()
 	return OP_TYPE_OTHER;
 }
 
-void GPUProcessPresent::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
+bool GPUProcessPresent::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
-	mSwapchainProcess->present(waitSemaphores, fence, semaphore);
+	return mSwapchainProcess->present(waitSemaphores, fence, semaphore);
 }
 
 std::vector<GPUProcess::PRDependency> GPUProcessPresent::getPRDependencies()

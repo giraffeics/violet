@@ -170,8 +170,13 @@ void GPUDependencyGraph::executeSequence()
 		std::vector<VkCommandBuffer> commandBuffers(numSubmits);
 		size_t currentSubmit = 0;
 
+		bool opFailed = false;
+
 		for (size_t i : group.nodeIndices)
 		{
+			if(opFailed)
+				break;
+
 			auto& node = mNodes[i];
 			switch(node.process->getOperationType())
 			{
@@ -200,14 +205,20 @@ void GPUDependencyGraph::executeSequence()
 					if (node.signalSemaphores.size() > 0)
 						signalSemaphore = node.signalSemaphores[0];
 
-					node.process->performOperation(node.waitSemaphores, VK_NULL_HANDLE, signalSemaphore);
+					if(!node.process->performOperation(node.waitSemaphores, VK_NULL_HANDLE, signalSemaphore))
+						opFailed = true;	// abort dependency graph execution
 					break;
 				}
 			}
 		}
 
+		if(opFailed)
+			break;
+
 		// submit command buffers
-		vkQueueSubmit(mEngine->getGraphicsQueue(), submitInfos.size(), submitInfos.data(), VK_NULL_HANDLE);
+		VkResult result = vkQueueSubmit(mEngine->getGraphicsQueue(), submitInfos.size(), submitInfos.data(), VK_NULL_HANDLE);
+		if(result != VK_SUCCESS)
+			break;	// abort dependency graph execution
 	}
 
 	// TODO: implement better syncronization

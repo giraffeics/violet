@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <limits>
+#include <cstring>
 
 #include "GPUProcessRenderPass.h"
 #include "GPUProcessSwapchain.h"

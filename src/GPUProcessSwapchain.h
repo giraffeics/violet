@@ -4,6 +4,8 @@
 #include "GPUProcess.h"
 #include <memory>
 
+class GPUProcessPresent;
+
 class GPUProcessSwapchain : public GPUProcess
 {
 	// process that calls back to this class in order to present the acquired image
@@ -26,7 +28,7 @@ public:
 	virtual OperationType getOperationType();
 	virtual void acquireFrameResources();
 	virtual void cleanupFrameResources();
-	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	virtual bool performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 private:
 	struct Frame
@@ -36,11 +38,14 @@ private:
 	};
 	std::vector<Frame> mFrames;
 
+	// timeout in ns for acquiring images
+	static constexpr uint32_t imageTimeout = 100000000;
+
 	// private member functions
 	bool chooseSurfaceFormat();
 	bool createSwapchain();
 	bool createFrames();
-	void present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	bool present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 	// member variables
 	bool mShouldRebuild = false;
@@ -64,7 +69,7 @@ public:
 
 	// virtual functions inherited from GPUProcess
 	virtual OperationType getOperationType();
-	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	virtual bool performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 
 private:
