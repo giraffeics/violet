@@ -4,6 +4,8 @@
 #include "GPUProcess.h"
 #include <memory>
 
+class GPUProcessPresent;
+
 class GPUProcessSwapchain : public GPUProcess
 {
 	// process that calls back to this class in order to present the acquired image
