@@ -16,7 +16,7 @@ int main()
 	std::vector<GPUProcess*> processVector;
 	processVector.push_back(&windowSystem);
 
-	GPUEngine engine(processVector, &windowSystem, "VKWhatever", "Whatever Engine");
+	GPUEngine engine(processVector, &windowSystem, "Violet Test", "Violet Engine");
 	auto meshWrangler = engine.getMeshWrangler();
 
 	// set up GPUProcesses

@@ -1,6 +1,6 @@
-project(vkw_shaders)
+project(violet_shaders)
 
-add_custom_target(vkw_shaders)
+add_custom_target(violet_shaders)
 
 # add shader sources
 set(shaderfiles "passthrough.vert" "passthrough.frag")
@@ -25,5 +25,5 @@ foreach(INFILE ${shaderfiles})
 		COMMAND ${GLSLC} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} "-o" ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${OUTFILE}
 		VERBATIM
 		SOURCES ${INFILE})
-	add_dependencies(vkw_shaders ${OUTFILE})
+	add_dependencies(violet_shaders ${OUTFILE})
 endforeach()
