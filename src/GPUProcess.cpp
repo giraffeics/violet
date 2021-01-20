@@ -37,9 +37,9 @@ VkCommandBuffer GPUProcess::performOperation(VkCommandPool commandPool)
 	return VK_NULL_HANDLE;
 }
 
-void GPUProcess::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
+bool GPUProcess::performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore)
 {
-	// do nothing in default implementation
+	return true; // do nothing in default implementation
 }
 
 std::vector<GPUProcess::PRDependency> GPUProcess::getPRDependencies()

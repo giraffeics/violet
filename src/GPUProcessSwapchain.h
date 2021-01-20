@@ -28,7 +28,7 @@ public:
 	virtual OperationType getOperationType();
 	virtual void acquireFrameResources();
 	virtual void cleanupFrameResources();
-	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	virtual bool performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 private:
 	struct Frame
@@ -42,7 +42,7 @@ private:
 	bool chooseSurfaceFormat();
 	bool createSwapchain();
 	bool createFrames();
-	void present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	bool present(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 
 	// member variables
 	bool mShouldRebuild = false;
@@ -66,7 +66,7 @@ public:
 
 	// virtual functions inherited from GPUProcess
 	virtual OperationType getOperationType();
-	virtual void performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
+	virtual bool performOperation(std::vector<VkSemaphore> waitSemaphores, VkFence fence, VkSemaphore semaphore);
 	virtual std::vector<PRDependency> getPRDependencies();
 
 private:
