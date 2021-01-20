@@ -13,5 +13,6 @@ include_directories("glm")
 
 # SET UP ASSIMP LIBRARY
 set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 add_subdirectory("assimp")
 include_directories("assimp/include")
