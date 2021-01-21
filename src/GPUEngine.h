@@ -35,6 +35,8 @@ public:
 	void validateProcesses();
 	GPUProcessSwapchain* getSwapchainProcess() { return mSwapchainProcess; }
 	GPUProcessPresent* getPresentProcess() { return mSwapchainProcess->getPresentProcess(); }
+	VkBool32 vulkanDebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
 
 	// Public Getters
 	VkInstance getInstance() { return mInstance; }
@@ -57,6 +59,7 @@ private:
 	bool createSurface();
 	bool createCommandPools();
 	bool createDescriptorSetLayout();
+	bool createDebugMessenger();
 	static std::vector<const char*> createInstanceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<const char*> createDeviceExtensionsVector(const std::vector<GPUProcess*>& processes);
 	static std::vector<uint32_t> findDeviceQueueFamilies(VkPhysicalDevice device, std::vector<VkQueueFlags>& flags);
@@ -95,6 +98,7 @@ private:
 	VkExtent2D mSurfaceExtent;
 	VkFence mTransferFence = VK_NULL_HANDLE;
 	VkDescriptorSetLayout mDescriptorLayoutModel = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;
 };
 
 #endif

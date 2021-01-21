@@ -14,6 +14,13 @@
 	std::vector<const char*> GPUEngine::validationLayers = { "VK_LAYER_KHRONOS_validation" };
 #endif
 
+VkBool32 GPUEngine::vulkanDebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData)
+{
+	if(messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+		std::cerr << "Vulkan Validation: " << pCallbackData->pMessage << std::endl;
+}
+
 GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
 {
 	// check to see if windowSystem is in processes
@@ -32,6 +39,10 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 
 	auto instanceExtensions = createInstanceExtensionsVector(lProcesses);
 	auto deviceExtensions = createDeviceExtensionsVector(lProcesses);
+
+	#ifndef NDEBUG
+		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	#endif
 
 	if(createInstance(instanceExtensions, appName, engineName, appVersion, engineVersion))
 		std::cout << "Instance created successfully!!" << std::endl;
@@ -63,6 +74,8 @@ GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem*
 	else
 		std::cout << "Could not create descriptor set layout!!" << std::endl;
 
+	createDebugMessenger();
+
 	// create transfer fence
 	mTransferFence = createFence(0);
 
@@ -89,6 +102,11 @@ GPUEngine::~GPUEngine()
 	vkDestroyCommandPool(mDevice, mGraphicsCommandPool, nullptr);
 
 	// destroy other owned objects
+	if(mDebugMessenger != VK_NULL_HANDLE)
+	{
+		auto vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+		vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger, nullptr);
+	}
 	vkDestroyFence(mDevice, mTransferFence, nullptr);
 	vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 	vkDestroyDescriptorSetLayout(mDevice, mDescriptorLayoutModel, nullptr);
@@ -442,6 +460,34 @@ bool GPUEngine::createDescriptorSetLayout()
 	createInfo.pBindings = &binding;
 
 	return (vkCreateDescriptorSetLayout(mDevice, &createInfo, nullptr, &mDescriptorLayoutModel) == VK_SUCCESS);
+}
+
+bool GPUEngine::createDebugMessenger()
+{
+	#ifdef NDEBUG
+		return true;
+	#else
+		auto vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
+
+		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		createInfo.messageSeverity = 	VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+										VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+										VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+										VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageType =	VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+									VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+									VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		createInfo.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )-> VkBool32 {
+								((GPUEngine*)pUserData)->vulkanDebugCallback(messageSeverity, messageType, pCallbackData);
+							};
+
+		VkResult result = vkCreateDebugUtilsMessengerEXT(mInstance, &createInfo, nullptr, &mDebugMessenger);
+		return (result == VK_TRUE);
+	#endif
 }
 
 bool GPUEngine::createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
