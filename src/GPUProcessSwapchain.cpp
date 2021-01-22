@@ -231,7 +231,12 @@ bool GPUProcessSwapchain::present(std::vector<VkSemaphore> waitSemaphores, VkFen
 	presentInfo.pResults = nullptr;
 
 	VkResult result = vkQueuePresentKHR(mEngine->getPresentQueue(), &presentInfo);
-	return (result == VK_SUCCESS);
+	if(result != VK_SUCCESS)
+	{
+		mShouldRebuild = true;
+		return false;
+	}
+	return true;
 }
 
 // GPUProcessPresent implementation

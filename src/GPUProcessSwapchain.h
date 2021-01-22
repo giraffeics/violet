@@ -39,7 +39,7 @@ private:
 	std::vector<Frame> mFrames;
 
 	// timeout in ns for acquiring images
-	static constexpr uint32_t imageTimeout = 100000000;
+	static constexpr uint64_t imageTimeout = 1000000000;
 
 	// private member functions
 	bool chooseSurfaceFormat();
