@@ -1,8 +1,18 @@
 #include "GPUWindowSystemGLFW.h"
 
+#include <iostream>
+
 GPUWindowSystemGLFW::GPUWindowSystemGLFW()
 {
-	glfwInit();
+	int result = glfwInit();
+	if(!result)
+	{
+		const char* description;
+		result = glfwGetError((const char**) &description);
+		std::cout << "ERROR #" << result << std::endl;
+		if(description)
+			std::cout << description << std::endl;
+	}
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	mWindow = glfwCreateWindow(640, 480, "Hello, World~!! ^-^", nullptr, nullptr);
 }
