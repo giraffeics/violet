@@ -78,9 +78,9 @@ private:
 
 	static std::vector<const char*> validationLayers;
 
-	// GPUProcess objects;
-	// TODO: move these handles elsewhere, as the engine should
-	// not be responsible for deciding what GPUProcesses are used
+	// GPUProcess objects; all GPUProcess objects are owned
+	// by the GPUDependencyGraph, but the GPUEngine is responsible
+	// for creating the swapchain and mesh wrangler
 	GPUProcessSwapchain* mSwapchainProcess;
 	GPUMeshWrangler* mMeshWrangler;
 	std::unique_ptr<GPUDependencyGraph> mDependencyGraph;
