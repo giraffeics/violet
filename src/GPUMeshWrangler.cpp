@@ -23,14 +23,16 @@ void GPUMeshWrangler::reset()
 {
 	mMeshInstances.clear();
 	mNextInstance = 0;
+	mNextBufferMat4 = 0;
 }
 
 void GPUMeshWrangler::stageMeshInstance(GPUMesh::Instance* instance)
 {
 	mMeshInstances.push_back(instance);
-	mUniformBufferData[mNextInstance] = instance->mTransform;
-	instance->mDynamicOffset = sizeof(glm::mat4) * mNextInstance;
+	mUniformBufferData[mNextBufferMat4] = instance->mTransform;
+	instance->mDynamicOffset = sizeof(glm::mat4) * mNextBufferMat4;
 	mNextInstance++;
+	mNextBufferMat4 += mMinMat4sPerMeshInstance;
 }
 
 void GPUMeshWrangler::bindModelDescriptor(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, GPUMesh::Instance* instance)
@@ -45,6 +47,10 @@ const GPUProcess::PassableResource<VkBuffer>* GPUMeshWrangler::getPRUniformBuffe
 
 void GPUMeshWrangler::acquireLongtermResources()
 {
+	mMinMat4sPerMeshInstance = mEngine->getPhysicalDeviceLimits()->minUniformBufferOffsetAlignment / sizeof(glm::mat4);
+	if(mMinMat4sPerMeshInstance < 1)
+		mMinMat4sPerMeshInstance = 1;
+
 	createDescriptorPool();
 	createDescriptorSet();
 	createBuffers();

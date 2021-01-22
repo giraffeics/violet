@@ -51,6 +51,9 @@ private:
 	glm::mat4* mUniformBufferData = nullptr;
 	std::vector<GPUMesh::Instance*> mMeshInstances;
 	size_t mNextInstance = 0;
+	size_t mNextBufferMat4 = 0;
+	size_t mMinMat4sPerMeshInstance = 256 / sizeof(glm::mat4);	// 256 = guaranteed maximum physical device
+																// minUniformBufferOffsetAlignment as per VK spec
 
 	// passable resources
 	std::unique_ptr<PassableResource<VkBuffer>> mPRUniformBuffer;
