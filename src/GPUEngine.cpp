@@ -362,7 +362,7 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 
 		if (!discreteGPUFound)
 			bestDevice = physicalDevice;
-		else if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
 			bestDevice = physicalDevice;
 			discreteGPUFound = true;
