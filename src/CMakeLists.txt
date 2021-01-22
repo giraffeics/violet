@@ -1,7 +1,7 @@
 project(violet_src)
 
 # Main program
-add_executable(violet "main.cpp" "GPUEngine.cpp" "GPUWindowSystemGLFW.cpp" "GPUEngine.h"  "GPUProcess.h" "GPUWindowSystemGLFW.h"  "GPUPipeline.cpp" "GPUProcess.cpp" "GPUProcessRenderPass.h" "GPUProcessRenderPass.cpp" "GPUProcessSwapchain.h" "GPUProcessSwapchain.cpp"  "GPUDependencyGraph.h" "GPUDependencyGraph.cpp"  "GPUMesh.h" "GPUMesh.cpp" "GPUMeshWrangler.cpp" "GPUMeshWrangler.h" "glm_includes.h" "GPUImage.h" "GPUImage.cpp" "GPUPipeline.h")
+add_executable(violet "main.cpp" "GPUEngine.cpp" "GPUWindowSystemGLFW.cpp" "GPUEngine.h"  "GPUProcess.h" "GPUWindowSystemGLFW.h"  "GPUPipeline.cpp" "GPUProcess.cpp" "GPUProcessRenderPass.h" "GPUProcessRenderPass.cpp" "GPUProcessSwapchain.h" "GPUProcessSwapchain.cpp"  "GPUDependencyGraph.h" "GPUDependencyGraph.cpp"  "GPUMesh.h" "GPUMesh.cpp" "GPUMeshWrangler.cpp" "GPUMeshWrangler.h" "glm_includes.h" "GPUImage.h" "GPUImage.cpp" "GPUPipeline.h" "GPUProcessCompletionAlert.h" "GPUProcessCompletionAlert.cpp")
 target_link_libraries(violet glfw vulkan_neat glm assimp)
 
 if ( CMAKE_COMPILER_IS_GNUCC )
