@@ -51,6 +51,7 @@ public:
 	VkExtent2D getSurfaceExtent() { return mSurfaceExtent; }
 	VkDescriptorSetLayout getModelDescriptorLayout() { return mDescriptorLayoutModel; }
 	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler; }
+	const VkPhysicalDeviceLimits* getPhysicalDeviceLimits() { return mPhysicalDeviceLimits.get(); }
 
 private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);
@@ -77,6 +78,7 @@ private:
 	static constexpr uint32_t INVALID_QUEUE_FAMILY = std::numeric_limits<uint32_t>::max();
 
 	static std::vector<const char*> validationLayers;
+	std::unique_ptr<VkPhysicalDeviceLimits> mPhysicalDeviceLimits;
 
 	// GPUProcess objects; all GPUProcess objects are owned
 	// by the GPUDependencyGraph, but the GPUEngine is responsible

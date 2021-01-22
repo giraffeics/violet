@@ -361,10 +361,14 @@ bool GPUEngine::choosePhysicalDevice(const std::vector<const char*>& extensions)
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
 		if (!discreteGPUFound)
+		{
 			bestDevice = physicalDevice;
+			mPhysicalDeviceLimits.reset(new VkPhysicalDeviceLimits(properties.limits));
+		}
 		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
 			bestDevice = physicalDevice;
+			mPhysicalDeviceLimits.reset(new VkPhysicalDeviceLimits(properties.limits));
 			discreteGPUFound = true;
 		}
 	}
