@@ -6,10 +6,14 @@ add_custom_target(violet_shaders)
 set(shaderfiles "passthrough.vert" "passthrough.frag")
 
 # find glslc
-IF(EXISTS "$ENV{VULKAN_SDK}/Bin32/")
-	set(GLSLC "$ENV{VULKAN_SDK}/Bin32/glslc")
+IF(UNIX)
+	set(GLSLC "glslc")
 ELSE()
-	set(GLSLC "$ENV{VULKAN_SDK}/bin/glslc")
+	IF(EXISTS "$ENV{VULKAN_SDK}/Bin32/")
+		set(GLSLC "$ENV{VULKAN_SDK}/Bin32/glslc")
+	ELSE()
+		set(GLSLC "$ENV{VULKAN_SDK}/bin/glslc")
+	ENDIF()
 ENDIF()
 
 foreach(INFILE ${shaderfiles})
