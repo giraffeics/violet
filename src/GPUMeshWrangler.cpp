@@ -58,7 +58,7 @@ void GPUMeshWrangler::acquireLongtermResources()
 	VkDescriptorBufferInfo bufferInfo = {};
 	bufferInfo.buffer = mUniformBuffer;
 	bufferInfo.offset = 0;
-	bufferInfo.range = VK_WHOLE_SIZE;
+	bufferInfo.range = maxBonesPerMesh * sizeof(glm::mat4);
 
 	VkWriteDescriptorSet descriptorWrite = {};
 	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

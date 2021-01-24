@@ -20,6 +20,9 @@ class GPUEngine;
 class GPUMeshWrangler : public GPUProcess
 {
 public:
+	static constexpr size_t maxBonesPerMesh = 64;	// it could be more and still fit in the
+													// minimum maxUniformBufferRange, but 64
+													// seems a reasonable limit for now
 	static constexpr size_t maxMeshInstances = 1024;
 
 	// constructors and destructor
