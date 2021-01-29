@@ -12,8 +12,14 @@ class GPUEngine;
 class GPUDependencyGraph
 {
 public:
+	// constructors and destructor
 	GPUDependencyGraph(GPUEngine* engine);
+	GPUDependencyGraph(GPUDependencyGraph& other) = delete;
+	GPUDependencyGraph(GPUDependencyGraph&& other) = delete;
+	GPUDependencyGraph& operator=(GPUDependencyGraph& other) = delete;
 	~GPUDependencyGraph();
+
+	// public functionality
 	void addProcess(GPUProcess* process);
 	void build();
 	void invalidateFrameResources();
