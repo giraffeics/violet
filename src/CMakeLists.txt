@@ -39,14 +39,6 @@ target_sources(violet PUBLIC ${violet_headers})
 target_sources(violet PRIVATE ${violet_sources})
 target_link_libraries(violet PRIVATE glfw vulkan_neat glm assimp)
 
-# suppress compiler warnings related to vulkan headers
-if ( CMAKE_COMPILER_IS_GNUCC )
-    target_compile_options(violet PRIVATE "-Wno-4267" "-Wno-26812")
-endif()
-if ( MSVC )
-    target_compile_options(violet PRIVATE "/wd4267" "/wd26812")
-endif()
-
 # compile shaders
 add_subdirectory(shaders)
 add_dependencies(violet violet_shaders)
