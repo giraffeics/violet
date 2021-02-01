@@ -62,7 +62,9 @@ public:
 	void draw(VkCommandBuffer commandBuffer);
 
 private:
-	// used in the load() function
+	/**
+	 * @brief A container for mesh data that has not yet been transferred to GPU memory.
+	 */
 	struct DataVectors{
 		std::vector<glm::vec3> position;
 		std::vector<uint32_t> index;
