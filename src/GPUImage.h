@@ -4,6 +4,15 @@
 #include "GPUProcess.h"
 #include <memory>
 
+/**
+ * @brief Manages a Vulkan image and its associated resources.
+ * 
+ * GPUImage is a GPUProcess that can be inserted into a GPUDependencyGraph.
+ * Its Vulkan resources are acquired when the dependency graph signals it
+ * to do so. A GPUImage can be configured to scale with the GPUEngine's surface;
+ * in this case, its Vulkan resources are freed upon cleanupFrameResources()
+ * and acquired upon acquireFrameResources().
+ */
 class GPUImage : public GPUProcess
 {
 public:
@@ -17,6 +26,11 @@ public:
 
 	// functions for setting up passable resource relationships
 	const VkFormat* getFormatPTR() { return &mFormat; }
+	/**
+	 * @brief Get a const pointer to a PassableImageView that can be used by another GPUProcess.
+	 * 
+	 * @return const PassableImageView* PassableImageView for this GPUImage's VkImageView and associated metadata.
+	 */
 	const PassableImageView* getImageViewPR() { return mPRImageView.get(); }
 
 	// virtual functions inherited from GPUProcess

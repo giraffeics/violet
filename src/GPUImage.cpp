@@ -2,6 +2,14 @@
 
 #include "GPUEngine.h"
 
+/**
+ * @brief Construct a new GPUImage object that scales with the GPUEngine's surface.
+ * 
+ * @param requiredFeatures Flags describing the features required in the image format to be chosen.
+ * @param usage Flags describing how the image will be used.
+ * @param tiling Tells the Vulkan implementation how to tile the image.
+ * @param screenSizeMultiplier An integer multiplier of the surface resolution, used to determine the image's resolution.
+ */
 GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t screenSizeMultiplier)
 {
 	mRequiredFeatures = requiredFeatures;
@@ -14,6 +22,15 @@ GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usag
 	mPRImageView = std::make_unique<PassableImageView>(this, &mImageView);
 }
 
+/**
+ * @brief Construct a new GPUImage object that has a constant resolution.
+ * 
+ * @param requiredFeatures Flags describing the features required in the image format to be chosen.
+ * @param usage Flags describing how the image will be used.
+ * @param tiling Tells the Vulkan implementation how to tile the image.
+ * @param width Width of the image, in texels.
+ * @param height Height of the image, intexels.
+ */
 GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t width, size_t height)
 {
 	mRequiredFeatures = requiredFeatures;
