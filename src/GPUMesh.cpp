@@ -9,9 +9,14 @@
 #include "GPUEngine.h"
 
 /**
-* Passes back the stride and format of a valid attribute type.
-* Returns false for an invalid type.
-*/
+ * @brief Passes back the stride and format of a valid GPUMesh::AttributeType.
+ * 
+ * @param stride Stride, in bytes, between two vertices' data in the associated vertex buffer.
+ * @param format VkFormat used to parse the associated data in shaders.
+ * @param type The attribute type for which properties will be passed back.
+ * @return true type is a valid GPUMesh::AttributeType and the attributes have been passed back.
+ * @return false type is not a valid GPUMesh::AttributeType and nothing has been passed back.
+ */
 bool GPUMesh::getAttributeProperties(uint32_t& stride, VkFormat& format, GPUMesh::AttributeType type)
 {
 	switch (type)
@@ -27,6 +32,15 @@ bool GPUMesh::getAttributeProperties(uint32_t& stride, VkFormat& format, GPUMesh
 
 // GPUMesh member function implementations
 
+/**
+ * @brief Construct a new GPUMesh object with a given file name.
+ * 
+ * When load() is called for this GPUMesh, the mesh data will be loaded from
+ * the file with that name in the "assets" folder.
+ * 
+ * @param name Name of the file to load mesh data from in the "assets" folder.
+ * @param engine Pointer to a GPUEngine instance that this GPUMesh will use.
+ */
 GPUMesh::GPUMesh(std::string name, GPUEngine* engine)
 {
 	mEngine = engine;
@@ -44,6 +58,11 @@ GPUMesh::~GPUMesh()
 	vkDestroyBuffer(device, mIndexBuffer, nullptr);
 }
 
+/**
+ * @brief Load the data associated with this mesh and prepare it for rendering.
+ * 
+ * Mesh data is loaded from the file that was specified when this GPUMesh was created.
+ */
 void GPUMesh::load()
 {
 	DataVectors data;
@@ -54,6 +73,16 @@ void GPUMesh::load()
 	mNumIndices = data.index.size();
 }
 
+/**
+ * @brief Record draw commands for this mesh into a given VkCommandBuffer.
+ * 
+ * The associated buffers are bound and then a draw call is recorded.
+ * It is assumed that commandBuffer is in a state where draw commands can be successfully recorded to it.
+ * It is also assumed that all relevant descriptor sets have already been bound, I.E. through the use
+ * of the engine's GPUMeshWrangler.
+ * 
+ * @param commandBuffer The VkCommandBuffer in which to record draw commands.
+ */
 void GPUMesh::draw(VkCommandBuffer commandBuffer)
 {
 	VkDeviceSize offset = 0;
