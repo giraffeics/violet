@@ -10,7 +10,7 @@
  * @param tiling Tells the Vulkan implementation how to tile the image.
  * @param screenSizeMultiplier An integer multiplier of the surface resolution, used to determine the image's resolution.
  */
-GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t screenSizeMultiplier)
+GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, uint32_t screenSizeMultiplier)
 {
 	mRequiredFeatures = requiredFeatures;
 	mImageTiling = tiling;
@@ -31,7 +31,7 @@ GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usag
  * @param width Width of the image, in texels.
  * @param height Height of the image, intexels.
  */
-GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t width, size_t height)
+GPUImage::GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, uint32_t width, uint32_t height)
 {
 	mRequiredFeatures = requiredFeatures;
 	mImageTiling = tiling;

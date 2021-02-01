@@ -17,8 +17,8 @@ class GPUImage : public GPUProcess
 {
 public:
 	// constructors & destructor
-	GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t screenSizeMultiplier);
-	GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, size_t width, size_t height);
+	GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, uint32_t screenSizeMultiplier);
+	GPUImage(VkFormatFeatureFlags requiredFeatures, VkImageUsageFlags usage, VkImageTiling tiling, uint32_t width, uint32_t height);
 	GPUImage(GPUImage& other) = delete;
 	GPUImage(GPUImage&& other) = delete;
 	GPUImage& operator=(GPUImage& other) = delete;
@@ -48,9 +48,9 @@ private:
 	std::unique_ptr<PassableImageView> mPRImageView;
 
 	// private member variables
-	size_t mScreenSizeMultiplier = 1;
-	size_t mWidth = 1;
-	size_t mHeight = 1;
+	uint32_t mScreenSizeMultiplier = 1;
+	uint32_t mWidth = 1;
+	uint32_t mHeight = 1;
 	bool mUseScreenSize = false;
 
 	// owned vulkan handles
