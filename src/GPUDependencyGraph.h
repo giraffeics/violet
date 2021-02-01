@@ -9,6 +9,14 @@
 
 class GPUEngine;
 
+/**
+ * @brief Manages syncronization and execution of a set of GPUProcesses.
+ * 
+ * Owns all GPUProcess instances which it manages, and is responsible for
+ * signaling them to acquire and free resources when appropriate.
+ * 
+ * Intended to be used and owned directly by a GPUEngine instance.
+ */
 class GPUDependencyGraph
 {
 public:

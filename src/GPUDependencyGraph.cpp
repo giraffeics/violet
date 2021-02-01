@@ -17,6 +17,17 @@ GPUDependencyGraph::~GPUDependencyGraph()
 	}
 }
 
+/**
+ * @brief Adds a process to this dependency graph.
+ * 
+ * No validation is performed when addProcess() is called, and the
+ * order in which processes are added does not matter. This
+ * GPUDependencyGraph takes direct ownership of process. If process
+ * depends on any other GPUProcess instances, those must
+ * also be explicitly added to this GPUDependencyGraph.
+ * 
+ * @param process The GPUProcess instance to be added to this dependency graph.
+ */
 void GPUDependencyGraph::addProcess(GPUProcess* process)
 {
 	// add a node to the list
@@ -25,6 +36,12 @@ void GPUDependencyGraph::addProcess(GPUProcess* process)
 	mProcessNodeIndices.insert({ process, index });
 }
 
+/**
+ * @brief Validates and builds this dependency graph.
+ * 
+ * Creates edges connecting all processes which depend on each other.
+ * Acquires all resources needed to execute the sequence of processes.
+ */
 void GPUDependencyGraph::build()
 {
 	// first, create all necessary edges
@@ -122,6 +139,13 @@ void GPUDependencyGraph::build()
 	}
 }
 
+/**
+ * @brief Invalidates all resources which depend on the VkSurface.
+ * 
+ * If those resources must be reallocated, then they are freed when
+ * invalidateFrameResources() is called. This GPUDependencyGraph cannot be
+ * executed again until validateFrameResources() is called.
+ */
 void GPUDependencyGraph::invalidateFrameResources()
 {
 	// The iteration here needs to be done this way to avoid integer overflow
@@ -136,6 +160,11 @@ void GPUDependencyGraph::invalidateFrameResources()
 	}
 }
 
+/**
+ * @brief Acquires and/or validates all resources which depend on the VkSurface.
+ * 
+ * After acquireFrameResources() is called, this GPUDependencyGraph() can be executed again.
+ */
 void GPUDependencyGraph::acquireFrameResources()
 {
 	for (auto& group : mSubmitSequence)
@@ -150,6 +179,9 @@ void GPUDependencyGraph::acquireFrameResources()
 // TODO: batch multiple command buffers into one VkSubmitInfo where appropriate
 // (won't make a difference until more complex rendering is implemented)
 // TODO: support batching into non-graphics command queues
+/**
+ * @brief Executes the sequence of processes in this GPUDependencyGraph.
+ */
 void GPUDependencyGraph::executeSequence()
 {
 	std::vector<VkCommandBuffer> createdCommandBuffers;
@@ -231,6 +263,9 @@ void GPUDependencyGraph::executeSequence()
 	vkResetCommandPool(mEngine->getDevice(), mEngine->getGraphicsPool(), 0);
 }
 
+/**
+ * @brief Frees all edges and their associated syncronization objects.
+ */
 void GPUDependencyGraph::cleanupEdges()
 {
 	for (auto& edge : mEdges)
