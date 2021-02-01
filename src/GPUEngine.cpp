@@ -19,6 +19,7 @@ VkBool32 GPUEngine::vulkanDebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT 
 {
 	if(messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 		std::cerr << "Vulkan Validation: " << pCallbackData->pMessage << std::endl;
+	return VK_FALSE;
 }
 
 GPUEngine::GPUEngine(const std::vector<GPUProcess*>& processes, GPUWindowSystem* windowSystem, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion)
@@ -260,14 +261,13 @@ uint32_t GPUEngine::findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlag
 	VkPhysicalDeviceMemoryProperties memoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memoryProperties);
 
-	uint32_t memoryType = UINT32_MAX;
 	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
 		if ((memoryTypeBits & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & properties))
 		{
 			return i;
 		}
-	if (memoryType == UINT32_MAX)
-		return UINT32_MAX;
+
+	return UINT32_MAX;
 }
 
 void GPUEngine::addProcess(GPUProcess* process)
@@ -486,7 +486,7 @@ bool GPUEngine::createDebugMessenger()
 									VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		createInfo.pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )-> VkBool32 {
-								((GPUEngine*)pUserData)->vulkanDebugCallback(messageSeverity, messageType, pCallbackData);
+								return ((GPUEngine*)pUserData)->vulkanDebugCallback(messageSeverity, messageType, pCallbackData);
 							};
 
 		VkResult result = vkCreateDebugUtilsMessengerEXT(mInstance, &createInfo, nullptr, &mDebugMessenger);
