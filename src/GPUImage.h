@@ -24,8 +24,6 @@ public:
 	GPUImage& operator=(GPUImage& other) = delete;
 	~GPUImage();
 
-	// functions for setting up passable resource relationships
-	const VkFormat* getFormatPTR() { return &mFormat; }
 	/**
 	 * @brief Get a const pointer to a PassableImageView that can be used by another GPUProcess.
 	 * 
