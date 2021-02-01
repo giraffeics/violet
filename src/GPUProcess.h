@@ -84,7 +84,7 @@ public:
 		VkFormat mFormat;
 	};
 
-	typedef struct PRDependency
+	struct PRDependency
 	{
 		const PassableResourceBase* resource;
 		VkPipelineStageFlags pipelineStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
