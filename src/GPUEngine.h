@@ -13,6 +13,13 @@
 #include "GPUDependencyGraph.h"
 #include "GPUMeshWrangler.h"
 
+/**
+ * @brief Creates and manages the Vulkan device and instance, as well as the processes used to render a frame.
+ * 
+ * The GPUEngine directly or indirectly owns all Vulkan handles. Most are indirectly owned,
+ * through instances of various other classes. It creates a GPUProcessSwapchain instance, and
+ * holds a non-owned pointer to it so that other classes can easily reference it as need be.
+ */
 class GPUEngine
 {
 public:
@@ -33,8 +40,6 @@ public:
 	uint32_t findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags properties);
 	void addProcess(GPUProcess* process);
 	void validateProcesses();
-	GPUProcessSwapchain* getSwapchainProcess() { return mSwapchainProcess; }
-	GPUProcessPresent* getPresentProcess() { return mSwapchainProcess->getPresentProcess(); }
 	VkBool32 vulkanDebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
 
@@ -52,6 +57,8 @@ public:
 	VkDescriptorSetLayout getModelDescriptorLayout() { return mDescriptorLayoutModel; }
 	GPUMeshWrangler* getMeshWrangler() { return mMeshWrangler; }
 	const VkPhysicalDeviceLimits* getPhysicalDeviceLimits() { return mPhysicalDeviceLimits.get(); }
+	GPUProcessSwapchain* getSwapchainProcess() { return mSwapchainProcess; }
+	GPUProcessPresent* getPresentProcess() { return mSwapchainProcess->getPresentProcess(); }
 
 private:
 	bool createInstance(const std::vector<const char*>& extensions, std::string appName, std::string engineName, uint32_t appVersion, uint32_t engineVersion);

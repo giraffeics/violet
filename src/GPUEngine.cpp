@@ -14,6 +14,14 @@
 	std::vector<const char*> GPUEngine::validationLayers = { "VK_LAYER_KHRONOS_validation" };
 #endif
 
+/**
+ * @brief Callback function that is called when the Vulkan validation layer has a message.
+ * 
+ * @param messageSeverity 
+ * @param messageType 
+ * @param pCallbackData 
+ * @return VkBool32 
+ */
 VkBool32 GPUEngine::vulkanDebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
 							const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData)
 {
@@ -128,6 +136,12 @@ bool GPUEngine::createSurface()
 }
 
 // TODO: make this more versatile and/or move this functionality
+/**
+ * @brief Allocates a primary command buffer from commandPool.
+ * 
+ * @param commandPool 
+ * @return VkCommandBuffer 
+ */
 VkCommandBuffer GPUEngine::allocateCommandBuffer(VkCommandPool commandPool)
 {
 	VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
@@ -143,6 +157,11 @@ VkCommandBuffer GPUEngine::allocateCommandBuffer(VkCommandPool commandPool)
 	return commandBuffer;
 }
 
+/**
+ * @brief Creates a single VkSemaphore object.
+ * 
+ * @return VkSemaphore 
+ */
 VkSemaphore GPUEngine::createSemaphore()
 {
 	VkSemaphore semaphore;
@@ -154,6 +173,12 @@ VkSemaphore GPUEngine::createSemaphore()
 	return semaphore;
 }
 
+/**
+ * @brief Creates a single VkFence object with given flags.
+ * 
+ * @param flags 
+ * @return VkFence 
+ */
 VkFence GPUEngine::createFence(VkFenceCreateFlags flags)
 {
 	VkFence fence;
@@ -167,6 +192,17 @@ VkFence GPUEngine::createFence(VkFenceCreateFlags flags)
 	return fence;
 }
 
+/**
+ * @brief Creates a buffer and allocates memory for it.
+ * 
+ * @param size Size of the buffer to be created.
+ * @param usageFlags Flags describing how the buffer will be used.
+ * @param memoryFlags Flags describing the required properties for the memory allocated.
+ * @param buffer Reference in which the buffer handle will be placed.
+ * @param memory Reference in which the memory handle will be placed.
+ * @return true Buffer was created successfully.
+ * @return false Buffer could not be created.
+ */
 bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VkBuffer& buffer, VkDeviceMemory& memory)
 {
 	// create the buffer
@@ -208,6 +244,18 @@ bool GPUEngine::createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, V
 
 // TODO: optimize this to avoid unnecessary memory allocation and play nice
 // with multiple threads
+/**
+ * @brief Transfers data from memory to a VkBuffer.
+ * 
+ * transferToBuffer() does not return until the transfer operation
+ * is completed. This may change in the future, with some more sophisticated
+ * syncronization scheme.
+ * 
+ * @param destination The VkBuffer to which data will be transferred.
+ * @param data Pointer to the data to transfer.
+ * @param size Size, in bytes, of the data to transfer.
+ * @param offset Offset, in bytes, at which to place the data in the buffer.
+ */
 void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize size, VkDeviceSize offset)
 {
 	// create staging buffer
@@ -256,6 +304,13 @@ void GPUEngine::transferToBuffer(VkBuffer destination, void* data, VkDeviceSize 
 	vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
 }
 
+/**
+ * @brief Finds a memory type that fits the given requirements.
+ * 
+ * @param memoryTypeBits Flags corresponding to a set of potentially valid memory types.
+ * @param properties Flags corresponding to a set of required memory properties.
+ * @return uint32_t Index of the memory type found; UINT32_MAX if none could be found.
+ */
 uint32_t GPUEngine::findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -270,17 +325,31 @@ uint32_t GPUEngine::findMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlag
 	return UINT32_MAX;
 }
 
+/**
+ * @brief Adds a process to the dependency graph and sets that process to use this GPUEngine.
+ * 
+ * @param process
+ */
 void GPUEngine::addProcess(GPUProcess* process)
 {
 	process->setEngine(this);
 	mDependencyGraph->addProcess(process);
 }
 
+/**
+ * @brief Validates and builds the process dependency graph.
+ */
 void GPUEngine::validateProcesses()
 {
 	mDependencyGraph->build();
 }
 
+/**
+ * @brief Renders an image and presents it to the surface.
+ * 
+ * If there is a problem with presenting to the surface,
+ * all surface-related resources are freed and rebuilt.
+ */
 void GPUEngine::renderFrame()
 {
 	mDependencyGraph->executeSequence();
