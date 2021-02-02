@@ -12,11 +12,12 @@
 class GPUEngine;
 
 /**
-* This class is responsible for preparing mesh instances for rendering;
-* this means assembling all of the uniform data for each of their
-* transforms, as well as any animation data, which will be used for
-* rendering from all camera angles for a given frame.
-*/
+ * @brief Prepares active mesh instances to be rendered each frame.
+ * 
+ * Groups transform data for each mesh instance into a single large uniform buffer
+ * and gives each mesh instance an offset into said buffer. This class's
+ * responsibilities will likely expand as features are added to Violet.
+ */
 class GPUMeshWrangler : public GPUProcess
 {
 public:
@@ -35,7 +36,7 @@ public:
 	// public functionality
 	void reset();
 	void stageMeshInstance(GPUMesh::Instance* instance);
-	const std::vector<GPUMesh::Instance*> getMeshInstances() { return mMeshInstances; }
+	const std::vector<GPUMesh::Instance*> getMeshInstances();
 	void bindModelDescriptor(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, GPUMesh::Instance* instance);
 
 	// functions for setting up passable resource relationships

@@ -19,6 +19,9 @@ GPUMeshWrangler::~GPUMeshWrangler()
 	vkFreeMemory(device, mTransferBufferMemory, nullptr);
 }
 
+/**
+ * @brief Clears all staged mesh instance data so that instances can be staged for the next frame.
+ */
 void GPUMeshWrangler::reset()
 {
 	mMeshInstances.clear();
@@ -26,6 +29,16 @@ void GPUMeshWrangler::reset()
 	mNextBufferMat4 = 0;
 }
 
+/**
+ * @brief Stages a mesh instance for rendering.
+ * 
+ * Generates uniform data for the mesh instance and places it in an internal buffer so
+ * that it can be transferred to GPU memory for use in render passes. Gives the mesh
+ * instance an offset into the uniform buffer that can later be referenced when
+ * rendering that mesh instance.
+ * 
+ * @param instance The mesh instance to be staged.
+ */
 void GPUMeshWrangler::stageMeshInstance(GPUMesh::Instance* instance)
 {
 	mMeshInstances.push_back(instance);
@@ -35,11 +48,36 @@ void GPUMeshWrangler::stageMeshInstance(GPUMesh::Instance* instance)
 	mNextBufferMat4 += mMinMat4sPerMeshInstance;
 }
 
+/**
+ * @brief Returns a const vector of all currently staged mesh instances.
+ * 
+ * @return const std::vector<GPUMesh::Instance*> 
+ */
+const std::vector<GPUMesh::Instance*> GPUMeshWrangler::getMeshInstances()
+{
+	return mMeshInstances;
+}
+
+/**
+ * @brief Binds the descriptor set and offset for a given mesh instance.
+ * 
+ * This enables the next draw command to use the mesh instance's uniform data.
+ * 
+ * @param commandBuffer Command buffer to record into.
+ * @param bindPoint Pipeline bind point at which the descriptor set will be used.
+ * @param pipelineLayout Pipeline layout used to program the binding.
+ * @param instance Mesh instance for which the descriptor set is to be bound.
+ */
 void GPUMeshWrangler::bindModelDescriptor(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, GPUMesh::Instance* instance)
 {
 	vkCmdBindDescriptorSets(commandBuffer, bindPoint, pipelineLayout, 0, 1, &mDescriptorSet, 1, &(instance->mDynamicOffset));
 }
 
+/**
+ * @brief Returns a const pointer to the PassableResource for this GPUMeshWrangler's uniform buffer.
+ * 
+ * @return const GPUProcess::PassableResource<VkBuffer>* 
+ */
 const GPUProcess::PassableResource<VkBuffer>* GPUMeshWrangler::getPRUniformBuffer()
 {
 	return mPRUniformBuffer.get();
