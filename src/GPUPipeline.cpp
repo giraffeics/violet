@@ -5,6 +5,19 @@
 #include "GPUMesh.h"
 #include "GPUEngine.h"
 
+/**
+ * @brief Construct a new GPUPipeline object using a given set of compiled shaders.
+ * 
+ * This constructor takes the names of the shaders to be used, as well as the
+ * shader stages they correspond to, as vectors of type std::string and VkShaderStageFlagBits
+ * respectively. It is assumed that these vectors' entries are in the correct order as per the
+ * Vulkan specification. File extension is to be excluded from the names in shaderNames.
+ * 
+ * @param engine Pointer to the GPUEngine to use.
+ * @param shaderNames Vector containing the names of the compiled shaders to load.
+ * @param shaderStages Vector containing the shader stages to which each shader corresponds.
+ * @param renderPass A render pass that this pipeline will be compatible with.
+ */
 GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass)
 {
 	mEngine = engine;
@@ -221,23 +234,40 @@ GPUPipeline::~GPUPipeline()
 	}
 }
 
+/**
+ * @brief Binds this pipeline in a given command buffer.
+ * 
+ * It is assumed that commandBuffer is in a state where this pipeline can
+ * be successfully bound. That means that a compatible render pass must
+ * be in progress.
+ * 
+ * @param commandBuffer Command buffer in which to bind the pipeline.
+ */
 void GPUPipeline::bind(VkCommandBuffer commandBuffer)
 {
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 }
 
-// TODO: implement to check validity
+/**
+ * @brief Returns true if this pipeline is in a valid, usable state.
+ */
 bool GPUPipeline::valid()
 {
 	return (mPipeline != VK_NULL_HANDLE);
 }
 
+/**
+ * @brief Invalidates this pipeline and frees some resources.
+ */
 void GPUPipeline::invalidate()
 {
 	vkDestroyPipeline(mEngine->getDevice(), mPipeline, nullptr);
 	mPipeline = VK_NULL_HANDLE;
 }
 
+/**
+ * @brief Validates this pipeline, rebuilding any resources freed by invalidate().
+ */
 void GPUPipeline::validate()
 {
 	buildPipeline();

@@ -6,6 +6,13 @@
 
 #include "GPUEngine.h"
 
+/**
+ * @brief Loads and manages a pipeline, its shaders, and associated resources.
+ * 
+ * Given a set of parameters in the constructor, GPUPipeline loads a set of compiled shaders
+ * and creates a pipeline using them. The pipeline can then be bound in a VkCommandBuffer
+ * using GPUPipeline::bind().
+ */
 class GPUPipeline
 {
 public:
