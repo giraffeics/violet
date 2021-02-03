@@ -10,6 +10,12 @@
 #include "GPUPipeline.h"
 #include "GPUMesh.h"
 
+/**
+ * @brief A GPUProcess which performs a render pass.
+ * 
+ * Currently renders all staged mesh isntances from the GPUEngine's GPUMeshWrangler.
+ * Functionality needs to be expanded a lot to make more complex rendering possible.
+ */
 class GPUProcessRenderPass : public GPUProcess
 {
 public:

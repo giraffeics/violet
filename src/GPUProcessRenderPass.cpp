@@ -17,21 +17,59 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 	delete mPipeline;
 }
 
+/**
+ * @brief Assign a PassableImageView for this GPURenderPass to render color information to.
+ * 
+ * All VkImageViews passed through prImageView must be able to be used
+ * as a color attachment, and their resolution must match all other
+ * attachments passed to this GPURenderPass.
+ * 
+ * @param prImageView 
+ */
 void GPUProcessRenderPass::setImageViewPR(const PassableImageView* prImageView)
 {
 	mPRImageView = prImageView;
 }
 
+/**
+ * @brief Assign a PassableImageView for this GPURenderPass to render depth information to.
+ * 
+ * All VkImageViews passed through prZBufferView must be able to be used
+ * as a depth attachment, and their resolution must match all other
+ * attachments passed to this GPURenderPass.
+ * 
+ * @param prZBufferView 
+ */
 void GPUProcessRenderPass::setZBufferViewPR(const PassableImageView* prZBufferView)
 {
 	mPRZBufferView = prZBufferView;
 }
 
+/**
+ * @brief Assign a PassableResource<VkBuffer> for this GPURenderPass to read from as a uniform buffer.
+ * 
+ * It is currently assumed that the passed prUniformBuffer belongs to the GPUEngine's GPUMeshWrangler.
+ * This relationship will probably be changed later so that the GPUProcessRenderPass can automatically
+ * find the GPUMeshWrangler without another class having to call setUniformBufferPR.
+ * 
+ * @param prUniformBuffer 
+ */
 void GPUProcessRenderPass::setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer)
 {
 	mPRUniformBuffer = prUniformBuffer;
 }
 
+/**
+ * @brief Get a const pointer to a PassableResource<VkImageView> that can be passed to another process.
+ * 
+ * This must be used to syncronize presentation of the color attachment after rendering.
+ * When the PassableResource returned by getImageViewOutPR() is passed to a GPUProcessPresent,
+ * this GPUProcessRenderPass's color attachment must be obtained from the corresponding GPUProcessSwapchain.
+ * This function will later be useful to facilitate render-to-texture, although other functionality
+ * must first be implemented to support that.
+ * 
+ * @return const GPUProcess::PassableResource<VkImageView>* 
+ */
 const GPUProcess::PassableResource<VkImageView>* GPUProcessRenderPass::getImageViewOutPR()
 {
 	return mPRImageViewOut.get();
