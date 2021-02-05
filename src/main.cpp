@@ -10,6 +10,14 @@
 #include "GPUProcessSwapchain.h"
 #include "GPUWindowSystemGLFW.h"
 
+/**
+ * @brief Current entry point for the application.
+ * 
+ * Tests rendering functionality by drawing some rotating meshes.
+ * Will later be replaced as the project shifts towards a more general-purpose usable state.
+ * 
+ * @return int 
+ */
 int main()
 {
 	GPUWindowSystemGLFW windowSystem;
