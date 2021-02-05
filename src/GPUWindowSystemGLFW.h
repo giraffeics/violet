@@ -4,6 +4,13 @@
 #include "GPUProcess.h"
 #include <GLFW/glfw3.h>
 
+/**
+ * @brief A GPUWindowSystem that uses the GLFW cross-platform library.
+ * 
+ * This is essentially an abstraction over an abstraction, but it's useful because it
+ * allows OOP to be used even though GLFW is a C library, and it will make it easier
+ * to support platforms that GLFW has not been ported to.
+ */
 class GPUWindowSystemGLFW : public GPUWindowSystem
 {
 public:
