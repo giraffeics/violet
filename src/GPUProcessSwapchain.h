@@ -6,6 +6,18 @@
 
 class GPUProcessPresent;
 
+/**
+ * @brief A GPUProcess that manages swapchain resources and acquires swapchain images.
+ * 
+ * Each GPUProcessSwapchain owns a PassableImageView representing the swapchain image
+ * for the current frame. This must be passed to the final render pass process as a
+ * color attachment, so that the results of rendering can be presented. The final render
+ * pass must then pass the same ImageView to this GPUProcessSwapchain's corresponding
+ * GPUProcessPresent.
+ * 
+ * Each GPUProcessSwapchain creates, and holds a pointer to, a corresponding GPUProcessPresent.
+ * Both of these processes are explicitly added to the dependency graph by the GPUEngine.
+ */
 class GPUProcessSwapchain : public GPUProcess
 {
 	// process that calls back to this class in order to present the acquired image
@@ -60,6 +72,18 @@ private:
 	std::unique_ptr<GPUProcess::PassableImageView> mPRCurrentImageView;
 };
 
+/**
+ * @brief A GPUProcess that works with GPUProcessSwapchain to present images to the surface.
+ * 
+ * Every GPUProcessSwapchain instance creates, and holds a pointer to, a GPUProcessPresent.
+ * Both must be explicitly added to the GPUDependencyGraph.
+ * Every GPUProcessPresent holds a pointer to its corresponding GPUProcessSwapchain, which it
+ * uses to perform its operation.
+ * 
+ * The GPUEngine creates a GPUProcessSwapchain and holds a reference to both it and its
+ * corresponding GPUProcessPresent. The final render pass process must pass its color
+ * attachment to the GPUEngine's GPUProcessPresent, so that the image can be presented.
+ */
 class GPUProcessPresent : public GPUProcess
 {
 public:

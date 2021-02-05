@@ -17,16 +17,37 @@ GPUProcessSwapchain::~GPUProcessSwapchain()
 	cleanupFrameResources();
 }
 
+/**
+ * @brief Returns a pointer to this GPUProcessSwapchain's corresponding GPUProcessPresent.
+ * 
+ * @return GPUProcessPresent* 
+ */
 GPUProcessPresent* GPUProcessSwapchain::getPresentProcess()
 {
 	return mPresentProcess;
 }
 
+/**
+ * @brief Returns a const pointer to the PassableImageView representing the swapchain image.
+ * 
+ * @return const GPUProcess::PassableImageView* 
+ */
 const GPUProcess::PassableImageView* GPUProcessSwapchain::getPRImageView()
 {
 	return mPRCurrentImageView.get();
 }
 
+/**
+ * @brief Returns true if resources bound to the surface need to be re-acquired.
+ * 
+ * This function's return value reflects the latest attempt to acquire or present a
+ * swapchain image.
+ * 
+ * @return true Problems were detected during image acquisition and/or presentation, and
+ * one of those operations may have failed.
+ * @return false No problems were detected during image acquisition and presentation, and
+ * both of those operations succeeded.
+ */
 bool GPUProcessSwapchain::shouldRebuild()
 {
 	return mShouldRebuild;
@@ -246,6 +267,14 @@ GPUProcessPresent::GPUProcessPresent(GPUProcessSwapchain* swapchainProcess)
 	mSwapchainProcess = swapchainProcess;
 }
 
+/**
+ * @brief Assign a PassableResource<ImageView> which corresponds to the swapchain image after rendering.
+ * 
+ * This GPUProcessPresent will use imageViewInPR to create a dependency so that presentation
+ * can be properly syncronized.
+ * 
+ * @param imageViewInPR 
+ */
 void GPUProcessPresent::setImageViewInPR(const PassableResource<VkImageView>* imageViewInPR)
 {
 	mPRImageViewIn = imageViewInPR;
