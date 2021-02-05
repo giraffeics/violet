@@ -18,7 +18,7 @@ I plan to add support for occlusion culling, although I need to investigate what
 
 # How To Build
 
-Violet uses CMake 3.8 or higher, and has been tested on Ubuntu and Windows. The steps for downloading and building from source are as follows:
+Violet uses CMake 3.12 or higher, and has been tested on Ubuntu and Windows. The steps for downloading and building from source are as follows:
 
 #### Ubuntu:
 
