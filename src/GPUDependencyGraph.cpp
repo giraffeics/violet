@@ -153,9 +153,9 @@ void GPUDependencyGraph::invalidateFrameResources()
 	{
 		i--;
 
-		for (auto i : mSubmitSequence[i].nodeIndices)
+		for (auto j : mSubmitSequence[i].nodeIndices)
 		{
-			mNodes[i].process->cleanupFrameResources();
+			mNodes[j].process->cleanupFrameResources();
 		}
 	}
 }
@@ -169,9 +169,9 @@ void GPUDependencyGraph::acquireFrameResources()
 {
 	for (auto& group : mSubmitSequence)
 	{
-		for (auto i : group.nodeIndices)
+		for (auto j : group.nodeIndices)
 		{
-			mNodes[i].process->acquireFrameResources();
+			mNodes[j].process->acquireFrameResources();
 		}
 	}
 }
