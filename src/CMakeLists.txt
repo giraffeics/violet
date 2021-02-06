@@ -33,6 +33,7 @@ list(APPEND violet_headers
 
 # configure violet executable target
 add_executable(violet "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+set_property(TARGET violet PROPERTY CXX_STANDARD 14)
 list(TRANSFORM violet_sources PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 list(TRANSFORM violet_headers PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 target_sources(violet PUBLIC ${violet_headers})
