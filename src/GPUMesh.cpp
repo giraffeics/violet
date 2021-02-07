@@ -91,6 +91,21 @@ void GPUMesh::draw(VkCommandBuffer commandBuffer)
 	vkCmdDrawIndexed(commandBuffer, mNumIndices, 1, 0, 0, 0);
 }
 
+aiMesh* findMesh(const aiScene* scene, aiNode* node)
+{
+	if(node->mNumMeshes >= 1)
+		return scene->mMeshes[node->mMeshes[0]];
+	
+	for(uint32_t i=0; i<node->mNumChildren; i++)
+	{
+		auto mesh = findMesh(scene, node->mChildren[i]);
+		if(mesh != nullptr)
+			return mesh;
+	}
+
+	return nullptr;
+}
+
 // TODO: actually load data from a file
 bool GPUMesh::loadFileData(DataVectors& data)
 {
@@ -101,9 +116,7 @@ bool GPUMesh::loadFileData(DataVectors& data)
 		return false;
 
 	auto node = scene->mRootNode;
-	if (node->mNumMeshes < 1)
-		return false;
-	auto mesh = scene->mMeshes[node->mMeshes[0]];
+	auto mesh = findMesh(scene, node);
 
 	data.position.clear();
 	data.index.clear();
