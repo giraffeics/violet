@@ -109,7 +109,7 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 
 	// begin and end render pass
 	{
-		std::vector<GPUMesh::AttributeType> attributeTypes = {GPUMesh::MESH_ATTRIBUTE_POSITION};
+		std::vector<GPUMesh::AttributeType> attributeTypes = {GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL};
 
 		VkPipelineLayout pipelineLayout = mPipeline->getLayout();
 		GPUMeshWrangler* meshWrangler = mEngine->getMeshWrangler();
@@ -157,7 +157,7 @@ void GPUProcessRenderPass::acquireLongtermResources()
 		{ "passthrough_vert", "passthrough_frag" }, 
 		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
 		mRenderPass,
-		{GPUMesh::MESH_ATTRIBUTE_POSITION});
+		{GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});
 }
 
 void GPUProcessRenderPass::acquireFrameResources()
