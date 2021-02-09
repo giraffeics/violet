@@ -28,7 +28,9 @@ public:
 	 */
 	enum AttributeType
 	{
+		MESH_ATTRIBUTE_NONE,
 		MESH_ATTRIBUTE_POSITION,
+		MESH_ATTRIBUTE_NORMAL,
 		MESH_ATTRIBUTE_ENUM_LENGTH
 	};
 
@@ -67,6 +69,7 @@ private:
 	 */
 	struct DataVectors{
 		std::vector<glm::vec3> position;
+		std::vector<glm::vec3> normal;
 		std::vector<uint32_t> index;
 	};
 
@@ -83,6 +86,8 @@ private:
 	VkFence mFence = VK_NULL_HANDLE;
 	VkBuffer mPositionBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory mPositionMemory = VK_NULL_HANDLE;
+	VkBuffer mNormmalBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory mNormalMemory = VK_NULL_HANDLE;
 	VkBuffer mIndexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory mIndexMemory = VK_NULL_HANDLE;
 	size_t positionOffset = 0;

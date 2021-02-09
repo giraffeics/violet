@@ -25,6 +25,11 @@ bool GPUMesh::getAttributeProperties(uint32_t& stride, VkFormat& format, GPUMesh
 		stride = sizeof(glm::vec3);
 		format = VK_FORMAT_R32G32B32_SFLOAT;
 		return true;
+
+	case MESH_ATTRIBUTE_NORMAL:
+		stride = sizeof(glm::vec3);
+		format = VK_FORMAT_R32G32B32_SFLOAT;
+		return true;
 	}
 
 	return false;
@@ -56,6 +61,12 @@ GPUMesh::~GPUMesh()
 	vkDestroyBuffer(device, mPositionBuffer, nullptr);
 	vkFreeMemory(device, mIndexMemory, nullptr);
 	vkDestroyBuffer(device, mIndexBuffer, nullptr);
+
+	if(mNormmalBuffer != VK_NULL_HANDLE)
+	{
+		vkFreeMemory(device, mNormalMemory, nullptr);
+		vkDestroyBuffer(device, mNormmalBuffer, nullptr);
+	}
 }
 
 /**
@@ -130,6 +141,16 @@ bool GPUMesh::loadFileData(DataVectors& data)
 		);
 	}
 
+	if(mesh->HasNormals())
+		for (size_t i = 0; i < mesh->mNumVertices; i++)
+		{
+			data.normal.push_back({
+				mesh->mNormals[i].x,
+				mesh->mNormals[i].y,
+				mesh->mNormals[i].z}
+			);
+		}
+
 	for (size_t i = 0; i < mesh->mNumFaces; i++)
 	{
 		auto& face = mesh->mFaces[i];
@@ -143,13 +164,25 @@ bool GPUMesh::loadFileData(DataVectors& data)
 bool GPUMesh::createBuffers(DataVectors& data)
 {
 	VkDevice device = mEngine->getDevice();
-	auto posSize = sizeof(data.position[0]) * data.position.size();//getBufferDataSize(data);
+	auto posSize = sizeof(data.position[0]) * data.position.size();
 	auto indexSize = sizeof(data.index[0]) * data.index.size();
+
+	auto normalSize = data.normal.size();
+	if(normalSize > 0)
+		normalSize *= sizeof(data.normal[0]);
 
 	// create & fill position buffer
 	mEngine->createBuffer(posSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mPositionBuffer, mPositionMemory);
 	mEngine->transferToBuffer(mPositionBuffer, data.position.data(), posSize, 0);
+
+	// create & fill normal buffer
+	if(normalSize > 0)
+	{
+		mEngine->createBuffer(normalSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mNormmalBuffer, mNormalMemory);
+		mEngine->transferToBuffer(mNormmalBuffer, data.normal.data(), normalSize, 0);
+	}
 
 	// create & fill index buffer
 	mEngine->createBuffer(indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
