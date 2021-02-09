@@ -9,6 +9,14 @@
 #include "GPUEngine.h"
 
 /**
+ * @brief Contains several zero-value VkDeviceSizes. Used when
+ * drawing, because vkBindVertexBuffers() requires an array of
+ * offsets, but due to the engine design, all of these offsets
+ * are always zero.
+ */
+const VkDeviceSize GPUMesh::zerosBuffer[16] = {0};
+
+/**
  * @brief Passes back the stride and format of a valid GPUMesh::AttributeType.
  * 
  * @param stride Stride, in bytes, between two vertices' data in the associated vertex buffer.
@@ -97,8 +105,6 @@ void GPUMesh::load()
  */
 void GPUMesh::draw(VkCommandBuffer commandBuffer, std::vector<AttributeType>& attributeTypes)
 {
-	VkDeviceSize offset = 0;
-
 	size_t numAttribs = attributeTypes.size();
 	std::vector<VkBuffer> attributeBuffers(numAttribs);
 	for(size_t i=0; i<numAttribs; i++)
@@ -117,7 +123,7 @@ void GPUMesh::draw(VkCommandBuffer commandBuffer, std::vector<AttributeType>& at
 		}
 	}
 
-	vkCmdBindVertexBuffers(commandBuffer, 0, numAttribs, attributeBuffers.data(), &offset);
+	vkCmdBindVertexBuffers(commandBuffer, 0, numAttribs, attributeBuffers.data(), zerosBuffer);
 	vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 	vkCmdDrawIndexed(commandBuffer, mNumIndices, 1, 0, 0, 0);
 }

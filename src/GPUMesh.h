@@ -80,6 +80,9 @@ private:
 	void ensureFenceExists();
 	static VkDeviceSize getBufferDataSize(DataVectors& data);
 
+	// buffer of zeros to make draw command creation faster
+	const static VkDeviceSize zerosBuffer[16];
+
 	// private member variables
 	std::string mName;
 	GPUEngine* mEngine;
