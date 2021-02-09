@@ -62,10 +62,10 @@ GPUMesh::~GPUMesh()
 	vkFreeMemory(device, mIndexMemory, nullptr);
 	vkDestroyBuffer(device, mIndexBuffer, nullptr);
 
-	if(mNormmalBuffer != VK_NULL_HANDLE)
+	if(mNormalBuffer != VK_NULL_HANDLE)
 	{
 		vkFreeMemory(device, mNormalMemory, nullptr);
-		vkDestroyBuffer(device, mNormmalBuffer, nullptr);
+		vkDestroyBuffer(device, mNormalBuffer, nullptr);
 	}
 }
 
@@ -93,11 +93,31 @@ void GPUMesh::load()
  * of the engine's GPUMeshWrangler.
  * 
  * @param commandBuffer The VkCommandBuffer in which to record draw commands.
+ * @param attachmentTypes An array listing the attribute types which must be bound, in the order they must be bound.
  */
-void GPUMesh::draw(VkCommandBuffer commandBuffer)
+void GPUMesh::draw(VkCommandBuffer commandBuffer, std::vector<AttributeType>& attributeTypes)
 {
 	VkDeviceSize offset = 0;
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mPositionBuffer, &offset);
+
+	size_t numAttribs = attributeTypes.size();
+	std::vector<VkBuffer> attributeBuffers(numAttribs);
+	for(size_t i=0; i<numAttribs; i++)
+	{
+		switch(attributeTypes[i])
+		{
+		case MESH_ATTRIBUTE_POSITION:
+			attributeBuffers[i] = mPositionBuffer;
+			break;
+		case MESH_ATTRIBUTE_NORMAL:
+			attributeBuffers[i] = mNormalBuffer;
+			break;
+		default:
+			attributeBuffers[i] = VK_NULL_HANDLE;
+			break;
+		}
+	}
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, numAttribs, attributeBuffers.data(), &offset);
 	vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 	vkCmdDrawIndexed(commandBuffer, mNumIndices, 1, 0, 0, 0);
 }
@@ -180,8 +200,8 @@ bool GPUMesh::createBuffers(DataVectors& data)
 	if(normalSize > 0)
 	{
 		mEngine->createBuffer(normalSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mNormmalBuffer, mNormalMemory);
-		mEngine->transferToBuffer(mNormmalBuffer, data.normal.data(), normalSize, 0);
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mNormalBuffer, mNormalMemory);
+		mEngine->transferToBuffer(mNormalBuffer, data.normal.data(), normalSize, 0);
 	}
 
 	// create & fill index buffer

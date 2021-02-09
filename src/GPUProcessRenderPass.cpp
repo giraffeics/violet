@@ -109,6 +109,8 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 
 	// begin and end render pass
 	{
+		std::vector<GPUMesh::AttributeType> attributeTypes = {GPUMesh::MESH_ATTRIBUTE_POSITION};
+
 		VkPipelineLayout pipelineLayout = mPipeline->getLayout();
 		GPUMeshWrangler* meshWrangler = mEngine->getMeshWrangler();
 		glm::vec3 tvec = { 0.0f, 0.0f, -3.0f };
@@ -135,7 +137,7 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		for (auto instance : meshWrangler->getMeshInstances())
 		{
 			meshWrangler->bindModelDescriptor(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, instance);
-			instance->mMesh->draw(commandBuffer);
+			instance->mMesh->draw(commandBuffer, attributeTypes);
 		}
 		vkCmdEndRenderPass(commandBuffer);
 	}

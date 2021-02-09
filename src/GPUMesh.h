@@ -61,7 +61,7 @@ public:
 
 	// public functionality
 	void load();
-	void draw(VkCommandBuffer commandBuffer);
+	void draw(VkCommandBuffer commandBuffer, std::vector<AttributeType>& attributeTypes);
 
 private:
 	/**
@@ -86,7 +86,7 @@ private:
 	VkFence mFence = VK_NULL_HANDLE;
 	VkBuffer mPositionBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory mPositionMemory = VK_NULL_HANDLE;
-	VkBuffer mNormmalBuffer = VK_NULL_HANDLE;
+	VkBuffer mNormalBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory mNormalMemory = VK_NULL_HANDLE;
 	VkBuffer mIndexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory mIndexMemory = VK_NULL_HANDLE;
