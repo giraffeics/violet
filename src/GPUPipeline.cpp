@@ -17,11 +17,14 @@
  * @param shaderNames Vector containing the names of the compiled shaders to load.
  * @param shaderStages Vector containing the shader stages to which each shader corresponds.
  * @param renderPass A render pass that this pipeline will be compatible with.
+ * @param attributeTypes A list of the attribute types to be used, in order of binding.
  */
-GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass)
+GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, 
+							VkRenderPass renderPass, const std::vector<GPUMesh::AttributeType>& attributeTypes)
 {
 	mEngine = engine;
 	mRenderPass = renderPass;
+	mAttributeTypes = attributeTypes;
 
 	buildShaderModules(shaderNames, shaderStages);
 
@@ -104,6 +107,7 @@ void GPUPipeline::buildPipeline()
 {
 	// specify fixed-function details
 	// TODO: make this more versatile
+	/*
 	VkVertexInputAttributeDescription attribDescription = {};
 	attribDescription.binding = 0;
 	attribDescription.location = 0;
@@ -112,15 +116,29 @@ void GPUPipeline::buildPipeline()
 	bindingDescription.binding = 0;
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	GPUMesh::getAttributeProperties(bindingDescription.stride, attribDescription.format, GPUMesh::MESH_ATTRIBUTE_POSITION);
+	//*/
+
+	size_t numAttribs = mAttributeTypes.size();
+	std::vector<VkVertexInputAttributeDescription> attribDescriptions(numAttribs);
+	std::vector<VkVertexInputBindingDescription> bindingDescriptions(numAttribs);
+	for(size_t i=0; i<numAttribs; i++)
+	{
+		attribDescriptions[i].location = i;
+		attribDescriptions[i].binding = i;
+		attribDescriptions[i].offset = 0;
+		bindingDescriptions[i].binding = i;
+		bindingDescriptions[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		GPUMesh::getAttributeProperties(bindingDescriptions[i].stride, attribDescriptions[i].format, mAttributeTypes[i]);
+	}
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.pNext = nullptr;
 	vertexInputInfo.flags = 0;
-	vertexInputInfo.vertexAttributeDescriptionCount = 1;
-	vertexInputInfo.pVertexAttributeDescriptions = &attribDescription;
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.vertexAttributeDescriptionCount = numAttribs;
+	vertexInputInfo.pVertexAttributeDescriptions = attribDescriptions.data();
+	vertexInputInfo.vertexBindingDescriptionCount = numAttribs;
+	vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
 
 	VkPipelineInputAssemblyStateCreateInfo assemblyInfo = {};
 	assemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

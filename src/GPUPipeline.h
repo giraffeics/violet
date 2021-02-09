@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "GPUEngine.h"
+#include "GPUMesh.h"
 
 /**
  * @brief Loads and manages a pipeline, its shaders, and associated resources.
@@ -17,7 +18,8 @@ class GPUPipeline
 {
 public:
 	// constructors and destructor
-	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, VkRenderPass renderPass);
+	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, 
+				VkRenderPass renderPass, const std::vector<GPUMesh::AttributeType>& attributeTypes);
 	GPUPipeline(GPUPipeline& other) = delete;
 	GPUPipeline(GPUPipeline&& other) = delete;
 	GPUPipeline& operator=(GPUPipeline& other) = delete;
@@ -43,6 +45,7 @@ private:
 	std::vector<VkShaderModule> mShaderModules;
 	const char mEntryPointName[5] = "main";
 	std::vector<VkPipelineShaderStageCreateInfo> mShaderStageCreateInfos;
+	std::vector<GPUMesh::AttributeType> mAttributeTypes;
 	VkRenderPass mRenderPass;
 	VkPipelineLayout mPipelineLayout;
 	VkPipeline mPipeline;
