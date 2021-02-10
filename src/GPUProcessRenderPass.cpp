@@ -232,20 +232,12 @@ bool GPUProcessRenderPass::createRenderPass()
 	attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference colorAttachmentReference = {};
-	colorAttachmentReference.attachment = 0;
-	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference depthStencilAttachmentReference = {};
-	depthStencilAttachmentReference.attachment = 1;
-	depthStencilAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpassDescription = {};
-	subpassDescription.flags = 0;
-	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpassDescription.colorAttachmentCount = 1;
-	subpassDescription.pColorAttachments = &colorAttachmentReference;
-	subpassDescription.pDepthStencilAttachment = &depthStencilAttachmentReference;
+	// specify a subpass
+	Subpass subpass;
+	subpass.setInputAttachments({});
+	subpass.setColorAttachments({{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
+	subpass.setDepthAttachment({1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+	VkSubpassDescription subpassDescription = subpass.getDescription();
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -261,4 +253,42 @@ bool GPUProcessRenderPass::createRenderPass()
 		return true;
 
 	return false;
+}
+
+// GPUProcessRenderPass::Subpass implementation
+
+void GPUProcessRenderPass::Subpass::setInputAttachments(std::vector<VkAttachmentReference>&& attachmentReferences)
+{
+	mInputAttachments = std::move(attachmentReferences);
+}
+
+void GPUProcessRenderPass::Subpass::setColorAttachments(std::vector<VkAttachmentReference>&& attachmentReferences)
+{
+	mColorAttachments = std::move(attachmentReferences);
+}
+
+void GPUProcessRenderPass::Subpass::setDepthAttachment(VkAttachmentReference attachmentReference)
+{
+	mDepthAttachment = attachmentReference;
+}
+
+void GPUProcessRenderPass::Subpass::preserve(uint32_t attachment)
+{
+	// TODO
+}
+
+VkSubpassDescription GPUProcessRenderPass::Subpass::getDescription()
+{
+	return {
+		0,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		(uint32_t) mInputAttachments.size(),
+		mInputAttachments.data(),
+		(uint32_t) mColorAttachments.size(),
+		mColorAttachments.data(),
+		nullptr,
+		&mDepthAttachment,
+		(uint32_t) mPreserveAttachments.size(),
+		mPreserveAttachments.data()
+	};
 }

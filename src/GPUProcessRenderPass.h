@@ -41,6 +41,22 @@ public:
 	virtual void cleanupFrameResources();
 
 private:
+	class Subpass
+	{
+	public:
+		void setInputAttachments(std::vector<VkAttachmentReference>&& attachmentReferences);
+		void setColorAttachments(std::vector<VkAttachmentReference>&& attachmentReferences);
+		void setDepthAttachment(VkAttachmentReference attachmentReference);
+		void preserve(uint32_t attachment);
+		VkSubpassDescription getDescription();
+
+	private:
+		std::vector<VkAttachmentReference> mInputAttachments;
+		std::vector<VkAttachmentReference> mColorAttachments;
+		VkAttachmentReference mDepthAttachment;
+		std::vector<uint32_t> mPreserveAttachments;
+	};
+
 	bool createRenderPass();
 
 	const PassableImageView* mPRImageView = nullptr;
