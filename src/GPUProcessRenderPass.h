@@ -19,6 +19,31 @@
 class GPUProcessRenderPass : public GPUProcess
 {
 public:
+	class Attachment
+	{
+	public:
+		void setClearColor(const VkClearColorValue& color){ mClearValue.color = color; }
+		void setClearDepthStencil(const VkClearDepthStencilValue& depthStencil){ mClearValue.depthStencil = depthStencil; }
+		void setLoadOp(VkAttachmentLoadOp loadOp){ mLoadOp = loadOp; }
+		void setStoreOp(VkAttachmentStoreOp storeOp){ mStoreOp = storeOp; }
+		void setStencilLoadOp(VkAttachmentLoadOp loadOp){ mStencilLoadOp = loadOp; }
+		void setStencilStoreOp(VkAttachmentStoreOp storeOp){ mStencilStoreOp = storeOp; }
+		void setFinalLayout(VkImageLayout finalLayout){ mFinalLayout = finalLayout; }
+		void setPRImageViewIn(const PassableImageView* prImageViewIn){ mPRImageViewIn = prImageViewIn; }
+
+		VkClearValue getClearValue(){ return mClearValue; }
+		VkAttachmentDescription getDescription();
+
+	private:
+		VkAttachmentLoadOp mLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		VkAttachmentStoreOp mStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		VkAttachmentLoadOp mStencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		VkAttachmentStoreOp mStencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		VkImageLayout mFinalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkClearValue mClearValue;
+		const PassableImageView* mPRImageViewIn = nullptr;
+	};
+
 	// constructors and destructor
 	GPUProcessRenderPass();
 	GPUProcessRenderPass(GPUProcessRenderPass& other) = delete;

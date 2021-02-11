@@ -211,26 +211,21 @@ void GPUProcessRenderPass::cleanupFrameResources()
 bool GPUProcessRenderPass::createRenderPass()
 {
 	// create render pass
-	VkAttachmentDescription attachmentDescriptions[2];
-	attachmentDescriptions[0].flags = 0;
-	attachmentDescriptions[0].format = mPRImageView->getFormat();
-	attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	std::vector<Attachment> attachments(2);
+	Attachment& colorAttachment = attachments[0];
+	colorAttachment.setPRImageViewIn(mPRImageView);
+	colorAttachment.setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+	colorAttachment.setStoreOp(VK_ATTACHMENT_STORE_OP_STORE);
+	colorAttachment.setFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-	attachmentDescriptions[1].flags = 0;
-	attachmentDescriptions[1].format = mPRZBufferView->getFormat();
-	attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachmentDescriptions[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	Attachment& depthAttachcment = attachments[1];
+	depthAttachcment.setPRImageViewIn(mPRZBufferView);
+	depthAttachcment.setLoadOp(VK_ATTACHMENT_LOAD_OP_CLEAR);
+	depthAttachcment.setFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+	std::vector<VkAttachmentDescription> attachmentDescriptions(attachments.size());
+	for(size_t i=0; i<attachments.size(); i++)
+		attachmentDescriptions[i] = attachments[i].getDescription();
 
 	// specify a subpass
 	Subpass subpass;
@@ -242,8 +237,8 @@ bool GPUProcessRenderPass::createRenderPass()
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.pNext = nullptr;
-	renderPassCreateInfo.attachmentCount = 2;
-	renderPassCreateInfo.pAttachments = attachmentDescriptions;
+	renderPassCreateInfo.attachmentCount = attachmentDescriptions.size();
+	renderPassCreateInfo.pAttachments = attachmentDescriptions.data();
 	renderPassCreateInfo.subpassCount = 1;
 	renderPassCreateInfo.pSubpasses = &subpassDescription;
 	renderPassCreateInfo.dependencyCount = 0;
@@ -290,5 +285,20 @@ VkSubpassDescription GPUProcessRenderPass::Subpass::getDescription()
 		&mDepthAttachment,
 		(uint32_t) mPreserveAttachments.size(),
 		mPreserveAttachments.data()
+	};
+}
+
+VkAttachmentDescription GPUProcessRenderPass::Attachment::getDescription()
+{
+	return {
+		0,
+		mPRImageViewIn->getFormat(),
+		VK_SAMPLE_COUNT_1_BIT,
+		mLoadOp,
+		mStoreOp,
+		mStencilLoadOp,
+		mStencilStoreOp,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		mFinalLayout
 	};
 }
