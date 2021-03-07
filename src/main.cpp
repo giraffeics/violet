@@ -57,7 +57,7 @@ int main()
 	}
 
 	// load the 3D mesh contained in assets/face.glb
-	GPUMesh faceMesh("face.obj", &engine);
+	GPUMesh faceMesh("monkey.fbx", &engine);
 	faceMesh.load();
 
 	// create two mesh instances and associated transformation data

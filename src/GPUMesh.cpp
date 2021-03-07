@@ -162,7 +162,7 @@ bool GPUMesh::loadFileData(DataVectors& data)
 	{
 		data.position.push_back({
 			mesh->mVertices[i].x,
-			-mesh->mVertices[i].y,
+			mesh->mVertices[i].y,
 			mesh->mVertices[i].z}
 		);
 	}
