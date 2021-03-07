@@ -154,7 +154,7 @@ void GPUProcessRenderPass::acquireLongtermResources()
 
 	// create pipeline
 	mPipeline = new GPUPipeline(mEngine, 
-		{ "passthrough_vert", "passthrough_frag" }, 
+		{ "phong_vert", "phong_frag" }, 
 		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
 		mRenderPass,
 		{GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});

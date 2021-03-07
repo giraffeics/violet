@@ -3,7 +3,7 @@ project(violet_shaders)
 add_custom_target(violet_shaders)
 
 # add shader sources
-set(shaderfiles "passthrough.vert" "passthrough.frag")
+set(shaderfiles "phong.vert" "phong.frag")
 
 # find glslc
 IF(UNIX)
