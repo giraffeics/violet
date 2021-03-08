@@ -19,7 +19,7 @@ class GPUPipeline
 public:
 	// constructors and destructor
 	GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, 
-				VkRenderPass renderPass, const std::vector<GPUMesh::AttributeType>& attributeTypes);
+				VkRenderPass renderPass, uint32_t subpass, const std::vector<GPUMesh::AttributeType>& attributeTypes);
 	GPUPipeline(GPUPipeline& other) = delete;
 	GPUPipeline(GPUPipeline&& other) = delete;
 	GPUPipeline& operator=(GPUPipeline& other) = delete;
@@ -49,6 +49,7 @@ private:
 	VkRenderPass mRenderPass;
 	VkPipelineLayout mPipelineLayout;
 	VkPipeline mPipeline;
+	uint32_t mSubpass;
 };
 
 #endif

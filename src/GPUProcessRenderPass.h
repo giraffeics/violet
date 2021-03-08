@@ -44,28 +44,6 @@ public:
 		const PassableImageView* mPRImageViewIn = nullptr;
 	};
 
-	// constructors and destructor
-	GPUProcessRenderPass();
-	GPUProcessRenderPass(GPUProcessRenderPass& other) = delete;
-	GPUProcessRenderPass(GPUProcessRenderPass&& other) = delete;
-	GPUProcessRenderPass& operator=(GPUProcessRenderPass& other) = delete;
-	~GPUProcessRenderPass();
-
-	// functions for setting up passable resource relationships
-	void setImageViewPR(const PassableImageView* prImageView);
-	void setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer);
-	void setZBufferViewPR(const PassableImageView* prZBufferView);
-	const PassableResource<VkImageView>* getImageViewOutPR();
-
-	// virtual functions inherited from GPUProcess
-	virtual std::vector<PRDependency> getPRDependencies();
-	virtual VkQueueFlags getNeededQueueType();
-	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
-	virtual void acquireLongtermResources();
-	virtual void acquireFrameResources();
-	virtual void cleanupFrameResources();
-
-private:
 	class Subpass
 	{
 	public:
@@ -76,7 +54,7 @@ private:
 		void preserve(uint32_t attachment);
 		void setAttributeTypes(std::vector<GPUMesh::AttributeType>&& attributeTypes);
 
-		void acquireLongtermResources(VkRenderPass renderPass, GPUEngine* engine);
+		void acquireLongtermResources(VkRenderPass renderPass, uint32_t subpass, GPUEngine* engine);
 		void acquireFrameResources();
 		void cleanupFrameResources();
 		VkSubpassDescription getDescription();
@@ -95,17 +73,43 @@ private:
 		std::unique_ptr<GPUPipeline> mPipeline;
 	};
 
-	// temporary member variable
-	std::unique_ptr<Subpass> mSubpass;
+	// constructors and destructor
+	GPUProcessRenderPass(size_t numSubpasses);
+	GPUProcessRenderPass(GPUProcessRenderPass& other) = delete;
+	GPUProcessRenderPass(GPUProcessRenderPass&& other) = delete;
+	GPUProcessRenderPass& operator=(GPUProcessRenderPass& other) = delete;
+	~GPUProcessRenderPass();
 
+	// functions for setting up subpasses
+	Subpass* getSubpass(size_t index);
+
+	// functions for setting up passable resource relationships
+	void setImageViewPR(const PassableImageView* prImageView);
+	void setUniformBufferPR(const PassableResource<VkBuffer>* prUniformBuffer);
+	void setZBufferViewPR(const PassableImageView* prZBufferView);
+	const PassableResource<VkImageView>* getImageViewOutPR();
+
+	// virtual functions inherited from GPUProcess
+	virtual std::vector<PRDependency> getPRDependencies();
+	virtual VkQueueFlags getNeededQueueType();
+	virtual VkCommandBuffer performOperation(VkCommandPool commandPool);
+	virtual void acquireLongtermResources();
+	virtual void acquireFrameResources();
+	virtual void cleanupFrameResources();
+
+private:
+	// private helper functions
+	std::vector<VkSubpassDependency> generateSubpassDependencies();
 	bool createRenderPass();
 
+	// private member variables
 	const PassableImageView* mPRImageView = nullptr;
 	const PassableImageView* mPRZBufferView = nullptr;
 	const PassableResource<VkBuffer>* mPRUniformBuffer = nullptr;
 	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
 	VkRenderPass mRenderPass;
+	std::vector<Subpass> mSubpasses;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;
 };
 

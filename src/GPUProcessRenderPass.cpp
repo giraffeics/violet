@@ -3,16 +3,11 @@
 #include "GPUEngine.h"
 #include "glm_includes.h"
 
-GPUProcessRenderPass::GPUProcessRenderPass()
+GPUProcessRenderPass::GPUProcessRenderPass(size_t numSubpasses)
 {
 	mPRImageViewOut = std::make_unique<PassableResource<VkImageView>>(this, &mCurrentImageView);
 
-	mSubpass = std::make_unique<Subpass>();
-	mSubpass->setShader("phong", VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-	mSubpass->setInputAttachments({});
-	mSubpass->setColorAttachments({{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
-	mSubpass->setDepthAttachment({1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-	mSubpass->setAttributeTypes({GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});
+	mSubpasses.resize(numSubpasses);
 }
 
 GPUProcessRenderPass::~GPUProcessRenderPass()
@@ -21,6 +16,20 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 
 	cleanupFrameResources();
 	vkDestroyRenderPass(device, mRenderPass, nullptr);
+}
+
+/**
+ * @brief Get a pointer to the Subpass specified by a given index.
+ * 
+ * This must be used to access each Subpass so that its details, including
+ * the shader and attachments, can be specified.
+ * 
+ * @param index 
+ * @return GPUProcessRenderPass::Subpass* 
+ */
+GPUProcessRenderPass::Subpass* GPUProcessRenderPass::getSubpass(size_t index)
+{
+	return &(((Subpass*)(mSubpasses.data()))[index]);
 }
 
 /**
@@ -136,7 +145,13 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.pClearValues = clearValues;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		mSubpass->draw(commandBuffer, mEngine, &viewProjection);
+		// iterate through all subpasses
+		mSubpasses[0].draw(commandBuffer, mEngine, &viewProjection);
+		for(size_t i=1; i<mSubpasses.size(); i++)
+		{
+			vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+			mSubpasses[i].draw(commandBuffer, mEngine, &viewProjection);
+		}
 
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -152,12 +167,14 @@ void GPUProcessRenderPass::acquireLongtermResources()
 	createRenderPass();
 
 	// acquire long-term subpass resources
-	mSubpass->acquireLongtermResources(mRenderPass, mEngine);
+	for(uint32_t i=0; i<mSubpasses.size(); i++)
+		mSubpasses[i].acquireLongtermResources(mRenderPass, i, mEngine);
 }
 
 void GPUProcessRenderPass::acquireFrameResources()
 {
-	mSubpass->acquireFrameResources();
+	for(auto& subpass : mSubpasses)
+		subpass.acquireFrameResources();
 
 	// create framebuffers for each possible ImageView
 	auto possibleImageViews = mPRImageView->getPossibleValues();
@@ -200,8 +217,89 @@ void GPUProcessRenderPass::cleanupFrameResources()
 
 	mFramebuffers.clear();
 
-	mSubpass->cleanupFrameResources();
+	for(auto& subpass : mSubpasses)
+		subpass.cleanupFrameResources();
 }
+
+/**
+ * @brief Checks for a shared attachment between two attachment arrays.
+ * 
+ * If one is found, updates the subpass dependency accordingly.
+ */
+inline void checkForSharedAttachment(VkSubpassDependency& dependency, uint32_t earlyAttachmentCount, const VkAttachmentReference* pEarlyAttachments,
+								uint32_t lateAttachmentAcount, const VkAttachmentReference* pLateAttachments,
+								VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccess, VkAccessFlags dstAccess)
+{
+	for(size_t srcIndex = 0; srcIndex < earlyAttachmentCount; srcIndex++)
+	{
+		for(size_t dstIndex = 0; dstIndex < lateAttachmentAcount; dstIndex++)
+		{
+			if(pEarlyAttachments[srcIndex].attachment == pLateAttachments[dstIndex].attachment)
+			{
+				dependency.srcAccessMask |= srcAccess;
+				dependency.dstAccessMask |= dstAccess;
+				dependency.srcStageMask |= srcStage;
+				dependency.dstStageMask |= dstStage;
+				return;
+			}
+		}
+	}
+}
+
+/**
+ * @brief Generates a vector containing the necessary subpass dependencies for all subpasses.
+ * 
+ * @return std::vector<VkSubpassDependency> 
+ */
+std::vector<VkSubpassDependency> GPUProcessRenderPass::generateSubpassDependencies()
+{
+	// obtain subpass descriptions
+	std::vector<VkSubpassDescription> subpassDescriptions(mSubpasses.size());
+	for(size_t i=0; i<mSubpasses.size(); i++)
+		subpassDescriptions[i] = mSubpasses[i].getDescription();
+
+	// generate dependencies
+	std::vector<VkSubpassDependency> dependencies;
+	for(size_t laterIndex=1; laterIndex<mSubpasses.size(); laterIndex++)
+	{
+		for(size_t earlierIndex = 0; earlierIndex < laterIndex; earlierIndex++)
+		{
+			VkSubpassDependency dependency{};
+			dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+			dependency.srcSubpass = earlierIndex;
+			dependency.dstSubpass = laterIndex;
+			auto& srcDescription = subpassDescriptions[earlierIndex];
+			auto& dstDescription = subpassDescriptions[laterIndex];
+			
+			checkForSharedAttachment(dependency, srcDescription.colorAttachmentCount, srcDescription.pColorAttachments,
+										dstDescription.colorAttachmentCount, dstDescription.pColorAttachments,
+										VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+										VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
+			checkForSharedAttachment(dependency, srcDescription.colorAttachmentCount, srcDescription.pColorAttachments,
+										dstDescription.inputAttachmentCount, dstDescription.pInputAttachments,
+										VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+										VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+
+			checkForSharedAttachment(dependency, srcDescription.inputAttachmentCount, srcDescription.pInputAttachments,
+										dstDescription.colorAttachmentCount, dstDescription.pColorAttachments,
+										VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+										VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+
+			checkForSharedAttachment(dependency, srcDescription.inputAttachmentCount, srcDescription.pInputAttachments,
+										dstDescription.inputAttachmentCount, dstDescription.pInputAttachments,
+										VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+										VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
+
+			if(dependency.srcStageMask != 0)
+				dependencies.push_back(dependency);
+		}
+	}
+
+	return dependencies;
+}
+
+
 
 bool GPUProcessRenderPass::createRenderPass()
 {
@@ -222,18 +320,24 @@ bool GPUProcessRenderPass::createRenderPass()
 	for(size_t i=0; i<attachments.size(); i++)
 		attachmentDescriptions[i] = attachments[i].getDescription();
 
-	// specify a subpass
-	VkSubpassDescription subpassDescription = mSubpass->getDescription();
+	// obtain subpass descriptions
+	std::vector<VkSubpassDescription> subpassDescriptions(mSubpasses.size());
+	for(size_t i=0; i<mSubpasses.size(); i++)
+		subpassDescriptions[i] = mSubpasses[i].getDescription();
+
+	// obtain subpass dependencies
+	auto subpassDependencies = generateSubpassDependencies();
+
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.pNext = nullptr;
 	renderPassCreateInfo.attachmentCount = attachmentDescriptions.size();
 	renderPassCreateInfo.pAttachments = attachmentDescriptions.data();
-	renderPassCreateInfo.subpassCount = 1;
-	renderPassCreateInfo.pSubpasses = &subpassDescription;
-	renderPassCreateInfo.dependencyCount = 0;
-	renderPassCreateInfo.pDependencies = nullptr;
+	renderPassCreateInfo.subpassCount = mSubpasses.size();
+	renderPassCreateInfo.pSubpasses = subpassDescriptions.data();
+	renderPassCreateInfo.dependencyCount = subpassDependencies.size();
+	renderPassCreateInfo.pDependencies = subpassDependencies.data();
 
 	if (vkCreateRenderPass(mEngine->getDevice(), &renderPassCreateInfo, nullptr, &mRenderPass) != VK_SUCCESS)
 		return false;
@@ -285,7 +389,7 @@ void GPUProcessRenderPass::Subpass::setAttributeTypes(std::vector<GPUMesh::Attri
  * 
  * @param renderPass 
  */
-void GPUProcessRenderPass::Subpass::acquireLongtermResources(VkRenderPass renderPass, GPUEngine* engine)
+void GPUProcessRenderPass::Subpass::acquireLongtermResources(VkRenderPass renderPass, uint32_t subpass, GPUEngine* engine)
 {
 	std::vector<std::string> shaderFileNames;
 	std::vector<VkShaderStageFlagBits> shaderStages;
@@ -301,7 +405,7 @@ void GPUProcessRenderPass::Subpass::acquireLongtermResources(VkRenderPass render
 		shaderStages.push_back(VK_SHADER_STAGE_FRAGMENT_BIT);
 	}
 
-	mPipeline = std::make_unique<GPUPipeline>(engine, shaderFileNames, shaderStages, renderPass, mAttributeTypes);
+	mPipeline = std::make_unique<GPUPipeline>(engine, shaderFileNames, shaderStages, renderPass, subpass, mAttributeTypes);
 }
 
 void GPUProcessRenderPass::Subpass::acquireFrameResources()

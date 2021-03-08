@@ -40,10 +40,18 @@ int main()
 
 		// create a render pass which renders color to the swapchain's image,
 		// uses zBufferImage as its depth buffer, and reads from the mesh wrangler's uniform buffer
-		auto renderPassProcess = new GPUProcessRenderPass;
+		auto renderPassProcess = new GPUProcessRenderPass(1);
 		renderPassProcess->setImageViewPR(swapchainProcess->getPRImageView());
 		renderPassProcess->setZBufferViewPR(zBufferImage->getImageViewPR());
 		renderPassProcess->setUniformBufferPR(meshWrangler->getPRUniformBuffer());
+
+		// set up the render subpasses
+		auto subpass = renderPassProcess->getSubpass(0);
+		subpass->setShader("phong", VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+		subpass->setInputAttachments({});
+		subpass->setColorAttachments({{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
+		subpass->setDepthAttachment({1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+		subpass->setAttributeTypes({GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});
 
 		// tell the present process to present after the render pass is done rendering
 		presentProcess->setImageViewInPR(renderPassProcess->getImageViewOutPR());

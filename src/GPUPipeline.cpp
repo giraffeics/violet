@@ -20,10 +20,11 @@
  * @param attributeTypes A list of the attribute types to be used, in order of binding.
  */
 GPUPipeline::GPUPipeline(GPUEngine* engine, std::vector<std::string> shaderNames, std::vector<VkShaderStageFlagBits> shaderStages, 
-							VkRenderPass renderPass, const std::vector<GPUMesh::AttributeType>& attributeTypes)
+							VkRenderPass renderPass, uint32_t subpass, const std::vector<GPUMesh::AttributeType>& attributeTypes)
 {
 	mEngine = engine;
 	mRenderPass = renderPass;
+	mSubpass = subpass;
 	mAttributeTypes = attributeTypes;
 
 	buildShaderModules(shaderNames, shaderStages);
@@ -230,7 +231,7 @@ void GPUPipeline::buildPipeline()
 	createInfo.pDynamicState = nullptr;
 	createInfo.layout = mPipelineLayout;
 	createInfo.renderPass = mRenderPass;
-	createInfo.subpass = 0;
+	createInfo.subpass = mSubpass;
 	createInfo.basePipelineHandle = VK_NULL_HANDLE;
 	createInfo.basePipelineIndex = 0;
 
