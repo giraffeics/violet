@@ -6,6 +6,13 @@
 GPUProcessRenderPass::GPUProcessRenderPass()
 {
 	mPRImageViewOut = std::make_unique<PassableResource<VkImageView>>(this, &mCurrentImageView);
+
+	mSubpass = std::make_unique<Subpass>();
+	mSubpass->setShader("phong", VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+	mSubpass->setInputAttachments({});
+	mSubpass->setColorAttachments({{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
+	mSubpass->setDepthAttachment({1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+	mSubpass->setAttributeTypes({GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});
 }
 
 GPUProcessRenderPass::~GPUProcessRenderPass()
@@ -14,7 +21,6 @@ GPUProcessRenderPass::~GPUProcessRenderPass()
 
 	cleanupFrameResources();
 	vkDestroyRenderPass(device, mRenderPass, nullptr);
-	delete mPipeline;
 }
 
 /**
@@ -111,8 +117,6 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 	{
 		std::vector<GPUMesh::AttributeType> attributeTypes = {GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL};
 
-		VkPipelineLayout pipelineLayout = mPipeline->getLayout();
-		GPUMeshWrangler* meshWrangler = mEngine->getMeshWrangler();
 		glm::vec3 tvec = { 0.0f, 0.0f, -3.0f };
 		auto extent = mEngine->getSurfaceExtent();
 		glm::mat4 viewProjection = glm::perspective(45.0f, ((float)extent.width / (float)extent.height), 0.01f, 100.0f) * glm::translate(glm::identity<glm::mat4>(), tvec);
@@ -132,13 +136,8 @@ VkCommandBuffer GPUProcessRenderPass::performOperation(VkCommandPool commandPool
 		beginInfo.pClearValues = clearValues;
 		vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		mPipeline->bind(commandBuffer);
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &viewProjection);
-		for (auto instance : meshWrangler->getMeshInstances())
-		{
-			meshWrangler->bindModelDescriptor(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, instance);
-			instance->mMesh->draw(commandBuffer, attributeTypes);
-		}
+		mSubpass->draw(commandBuffer, mEngine, &viewProjection);
+
 		vkCmdEndRenderPass(commandBuffer);
 	}
 
@@ -152,17 +151,13 @@ void GPUProcessRenderPass::acquireLongtermResources()
 	// create RenderPass
 	createRenderPass();
 
-	// create pipeline
-	mPipeline = new GPUPipeline(mEngine, 
-		{ "phong_vert", "phong_frag" }, 
-		{ VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT },
-		mRenderPass,
-		{GPUMesh::MESH_ATTRIBUTE_POSITION, GPUMesh::MESH_ATTRIBUTE_NORMAL});
+	// acquire long-term subpass resources
+	mSubpass->acquireLongtermResources(mRenderPass, mEngine);
 }
 
 void GPUProcessRenderPass::acquireFrameResources()
 {
-	mPipeline->validate();
+	mSubpass->acquireFrameResources();
 
 	// create framebuffers for each possible ImageView
 	auto possibleImageViews = mPRImageView->getPossibleValues();
@@ -205,7 +200,7 @@ void GPUProcessRenderPass::cleanupFrameResources()
 
 	mFramebuffers.clear();
 
-	mPipeline->invalidate();
+	mSubpass->cleanupFrameResources();
 }
 
 bool GPUProcessRenderPass::createRenderPass()
@@ -228,11 +223,7 @@ bool GPUProcessRenderPass::createRenderPass()
 		attachmentDescriptions[i] = attachments[i].getDescription();
 
 	// specify a subpass
-	Subpass subpass;
-	subpass.setInputAttachments({});
-	subpass.setColorAttachments({{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL}});
-	subpass.setDepthAttachment({1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-	VkSubpassDescription subpassDescription = subpass.getDescription();
+	VkSubpassDescription subpassDescription = mSubpass->getDescription();
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -244,13 +235,23 @@ bool GPUProcessRenderPass::createRenderPass()
 	renderPassCreateInfo.dependencyCount = 0;
 	renderPassCreateInfo.pDependencies = nullptr;
 
-	if (vkCreateRenderPass(mEngine->getDevice(), &renderPassCreateInfo, nullptr, &mRenderPass) == VK_SUCCESS)
-		return true;
+	if (vkCreateRenderPass(mEngine->getDevice(), &renderPassCreateInfo, nullptr, &mRenderPass) != VK_SUCCESS)
+		return false;
 
-	return false;
+	return true;
 }
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//
 // GPUProcessRenderPass::Subpass implementation
+//
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+void GPUProcessRenderPass::Subpass::setShader(std::string name, VkShaderStageFlags stageFlags)
+{
+	mShaderName = name;
+	mShaderStageFlags = stageFlags;
+}
 
 void GPUProcessRenderPass::Subpass::setInputAttachments(std::vector<VkAttachmentReference>&& attachmentReferences)
 {
@@ -272,6 +273,47 @@ void GPUProcessRenderPass::Subpass::preserve(uint32_t attachment)
 	// TODO
 }
 
+void GPUProcessRenderPass::Subpass::setAttributeTypes(std::vector<GPUMesh::AttributeType>&& attributeTypes)
+{
+	mAttributeTypes = attributeTypes;
+}
+
+/**
+ * @brief Acquires longterm resources for this subpass.
+ * 
+ * This includes shader loading and compilation, and creation of the pipeline.
+ * 
+ * @param renderPass 
+ */
+void GPUProcessRenderPass::Subpass::acquireLongtermResources(VkRenderPass renderPass, GPUEngine* engine)
+{
+	std::vector<std::string> shaderFileNames;
+	std::vector<VkShaderStageFlagBits> shaderStages;
+
+	if(mShaderStageFlags & VK_SHADER_STAGE_VERTEX_BIT)
+	{
+		shaderFileNames.push_back(mShaderName + "_vert");
+		shaderStages.push_back(VK_SHADER_STAGE_VERTEX_BIT);
+	}
+	if(mShaderStageFlags & VK_SHADER_STAGE_FRAGMENT_BIT)
+	{
+		shaderFileNames.push_back(mShaderName + "_frag");
+		shaderStages.push_back(VK_SHADER_STAGE_FRAGMENT_BIT);
+	}
+
+	mPipeline = std::make_unique<GPUPipeline>(engine, shaderFileNames, shaderStages, renderPass, mAttributeTypes);
+}
+
+void GPUProcessRenderPass::Subpass::acquireFrameResources()
+{
+	mPipeline->validate();
+}
+
+void GPUProcessRenderPass::Subpass::cleanupFrameResources()
+{
+	mPipeline->invalidate();
+}
+
 VkSubpassDescription GPUProcessRenderPass::Subpass::getDescription()
 {
 	return {
@@ -286,6 +328,20 @@ VkSubpassDescription GPUProcessRenderPass::Subpass::getDescription()
 		(uint32_t) mPreserveAttachments.size(),
 		mPreserveAttachments.data()
 	};
+}
+
+void GPUProcessRenderPass::Subpass::draw(VkCommandBuffer commandBuffer, GPUEngine* engine, glm::mat4* viewProjection)
+{
+	VkPipelineLayout pipelineLayout = mPipeline->getLayout();
+	GPUMeshWrangler* meshWrangler = engine->getMeshWrangler();
+
+	mPipeline->bind(commandBuffer);
+	vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), viewProjection);
+	for (auto instance : meshWrangler->getMeshInstances())
+	{
+		meshWrangler->bindModelDescriptor(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, instance);
+		instance->mMesh->draw(commandBuffer, mAttributeTypes);
+	}
 }
 
 VkAttachmentDescription GPUProcessRenderPass::Attachment::getDescription()

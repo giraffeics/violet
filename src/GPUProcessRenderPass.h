@@ -69,18 +69,34 @@ private:
 	class Subpass
 	{
 	public:
+		void setShader(std::string name, VkShaderStageFlags stageFlags);
 		void setInputAttachments(std::vector<VkAttachmentReference>&& attachmentReferences);
 		void setColorAttachments(std::vector<VkAttachmentReference>&& attachmentReferences);
 		void setDepthAttachment(VkAttachmentReference attachmentReference);
 		void preserve(uint32_t attachment);
+		void setAttributeTypes(std::vector<GPUMesh::AttributeType>&& attributeTypes);
+
+		void acquireLongtermResources(VkRenderPass renderPass, GPUEngine* engine);
+		void acquireFrameResources();
+		void cleanupFrameResources();
 		VkSubpassDescription getDescription();
+
+		void draw(VkCommandBuffer commandBuffer, GPUEngine* engine, glm::mat4* viewProjection);
 
 	private:
 		std::vector<VkAttachmentReference> mInputAttachments;
 		std::vector<VkAttachmentReference> mColorAttachments;
 		VkAttachmentReference mDepthAttachment;
 		std::vector<uint32_t> mPreserveAttachments;
+		std::vector<GPUMesh::AttributeType> mAttributeTypes;
+
+		std::string mShaderName;
+		VkShaderStageFlags mShaderStageFlags;
+		std::unique_ptr<GPUPipeline> mPipeline;
 	};
+
+	// temporary member variable
+	std::unique_ptr<Subpass> mSubpass;
 
 	bool createRenderPass();
 
@@ -90,7 +106,6 @@ private:
 	std::unique_ptr<PassableResource<VkImageView>> mPRImageViewOut;
 	VkImageView mCurrentImageView = VK_NULL_HANDLE;
 	VkRenderPass mRenderPass;
-	GPUPipeline* mPipeline;
 	std::map<VkImageView, VkFramebuffer> mFramebuffers;
 };
 
